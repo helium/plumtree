@@ -17,5 +17,5 @@ _plugins
 _build
 _tdeps
 logs
-rebar.lock
 erln8.config
+.local_dialyzer_plt
