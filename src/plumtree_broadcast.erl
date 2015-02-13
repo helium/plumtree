@@ -589,7 +589,7 @@ reset_peers(AllMembers, EagerPeers, LazyPeers, State) ->
      }.
 
 all_broadcast_members(LocalState) ->
-    riak_dt_orswot:values(LocalState).
+    riak_dt_orswot:value(LocalState).
 
 init_peers(Members) ->
     case length(Members) of
