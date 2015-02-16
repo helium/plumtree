@@ -80,12 +80,12 @@ leave() ->
             Remote2List = riak_dt_orswot:value(Remote2),
             case [P || P <- Remote2List, P =:= node()] of
                 [] ->
-                    lager:info("Leaving cluster~n");
+                    lager:info("Leaving cluster");
                 _ ->
                     leave()
             end;
         {error, singleton} ->
-            lager:warning("Cannot leave, not a member of a cluster.~n")
+            lager:warning("Cannot leave, not a member of a cluster.")
     end.
 
 stop() ->
