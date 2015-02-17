@@ -1,9 +1,12 @@
 {application, plumtree,
- [{description, "An OTP library"}
- ,{vsn, "0.0.1"}
- ,{registered, []}
- ,{applications,
-    [kernel,stdlib]}
- ,{env,[]}
- ,{modules, []}
+ [
+  {description, "Epidemic Broadcast Trees"},
+  {vsn, "0.0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  lager
+                 ]},
+  {modules, { plumtree_app, []}}
  ]}.

@@ -10,3 +10,10 @@ include tools.mk
 
 compile: deps
 	./rebar3 compile
+
+rel:
+	./rebar3 release
+
+stage:
+	./rebar3 release -d
+
