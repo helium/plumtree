@@ -8,5 +8,6 @@
                   stdlib,
                   lager
                  ]},
-  {modules, { plumtree_app, []}}
+  {mod, { plumtree_app, []}},
+  {modules, []}
  ]}.
