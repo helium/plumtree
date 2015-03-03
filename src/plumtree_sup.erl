@@ -13,12 +13,17 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
+    case plumtree_metadata_manager:init([]) of
+        {stop, _} ->
+            lager:info("Failed to initialize plumtree_metatadata_manager");
+        {ok, _State} ->
+            ok
+    end,
     Children = lists:flatten(
                  [
                  ?CHILD(plumtree_peer_service_gossip, worker),
                  ?CHILD(plumtree_broadcast, worker),
-                 ?CHILD(plumtree_metadata_exchange_fsm, worker),
-                 ?CHILD(plumtree_metadata_manager, worker)
+                 ?CHILD(plumtree_metadata_exchange_fsm, worker)
                  ]),
     RestartStrategy = {one_for_one, 10, 10},
     {ok, {RestartStrategy, Children}}.
