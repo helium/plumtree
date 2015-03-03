@@ -17,7 +17,8 @@ init([]) ->
                  [
                  ?CHILD(plumtree_peer_service_gossip, worker),
                  ?CHILD(plumtree_broadcast, worker),
-                 ?CHILD(plumtree_metadata_exchange_fsm, worker)
+                 ?CHILD(plumtree_metadata_exchange_fsm, worker),
+                 ?CHILD(plumtree_metadata_manager, worker)
                  ]),
     RestartStrategy = {one_for_one, 10, 10},
     {ok, {RestartStrategy, Children}}.
