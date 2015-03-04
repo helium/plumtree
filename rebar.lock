@@ -12,7 +12,7 @@
   1},
  {<<"cuttlefish">>,
   {git,"git://github.com/basho/cuttlefish.git",
-       {ref,"c92c8325aeaea6b6ba7516bbd434f8e408f87d60"}},
+       {ref,"ddba029f7fd2cc88b40681a898f22ade82d3d053"}},
   1},
  {<<"riak_dt">>,
   {git,"git://github.com/helium/riak_dt.git",
@@ -23,6 +23,6 @@
        {ref,"d33ccf3b69de09a628fe38b4d7981bb8671b8a4f"}},
   0},
  {<<"eleveldb">>,
-  {git,"git://github.com/basho/eleveldb.git",
-       {ref,"9beafceb540eb256aed0d7c3d214a2100d76f017"}},
+  {git,"git://github.com/helium/eleveldb.git",
+       {ref,"230111ab3d51883b1be6e96aad10e16e000087b0"}},
   0}].
