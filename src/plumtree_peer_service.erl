@@ -80,7 +80,8 @@ leave() ->
             Remote2List = riak_dt_orswot:value(Remote2),
             case [P || P <- Remote2List, P =:= node()] of
                 [] ->
-                    lager:info("Leaving cluster");
+                    %% leaving the cluster shuts down the node
+                    stop("Leaving cluster");
                 _ ->
                     leave()
             end;
