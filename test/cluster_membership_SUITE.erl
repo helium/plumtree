@@ -28,7 +28,8 @@
 
 init_per_suite(_Config) ->
     lager:start(),
-    net_kernel:start([runner, shortnames]),
+    {ok, Hostname} = inet:gethostname(),
+    net_kernel:start([list_to_atom("runner@"++Hostname), shortnames]),
     lager:info("node name ~p", [node()]),
     _Config.
 
@@ -68,13 +69,12 @@ init_per_testcase(Case, Config) ->
     [{nodes, Nodes}|Config].
 
 end_per_testcase(_, _Config) ->
-    [{ok, _} = ct_slave:stop(Node) || Node <- [jaguar, shadow, thorn, pyros]],
+    [ct_slave:stop(Node) || Node <- [jaguar, shadow, thorn, pyros]],
     ok.
 
 all() ->
     [singleton_test, join_test, join_nonexistant_node_test, join_self_test,
     leave_test].
-    %[leave_test].
 
 singleton_test(Config) ->
     Nodes = proplists:get_value(nodes, Config),
