@@ -6,8 +6,11 @@
   {applications, [
                   kernel,
                   stdlib,
+                  crypto,
                   lager
                  ]},
   {mod, { plumtree_app, []}},
-  {modules, []}
+  {modules, []},
+  {env, [
+         {plumtree_data_dir, "data"}]}
  ]}.

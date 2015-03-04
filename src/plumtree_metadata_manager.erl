@@ -679,7 +679,7 @@ data_root(Opts) ->
     end.
 
 default_data_root() ->
-    case application:get_env(plumtree, platform_data_dir) of
+    case application:get_env(plumtree, plumtree_data_dir) of
         {ok, PRoot} -> filename:join(PRoot, "cluster_meta");
         undefined -> undefined
     end.

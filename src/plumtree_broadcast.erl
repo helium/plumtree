@@ -112,7 +112,7 @@
 -spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
     {ok, LocalState} = plumtree_peer_service_manager:get_local_state(),
-    Members = all_broadcast_members(LocalState),
+    Members = riak_dt_orswot:value(LocalState),
     {InitEagers, InitLazys} = init_peers(Members),
     Mods = app_helper:get_env(plumtree, broadcast_mods, [plumtree_metadata_manager]),
     Res = start_link(Members, InitEagers, InitLazys, Mods),
@@ -278,7 +278,7 @@ handle_cast({graft, MessageId, Mod, Round, Root, From}, State) ->
     State1 = handle_graft(Result, MessageId, Mod, Round, Root, From, State),
     {noreply, State1};
 handle_cast({update, LocalState}, State=#state{all_members=BroadcastMembers}) ->
-    CurrentMembers = ordsets:from_list(all_broadcast_members(LocalState)),
+    CurrentMembers = ordsets:from_list(LocalState),
     New = ordsets:subtract(CurrentMembers, BroadcastMembers),
     Removed = ordsets:subtract(BroadcastMembers, CurrentMembers),
     State1 = case ordsets:size(New) > 0 of
@@ -587,9 +587,6 @@ reset_peers(AllMembers, EagerPeers, LazyPeers, State) ->
       lazy_sets     = orddict:new(),
       all_members   = ordsets:from_list(AllMembers)
      }.
-
-all_broadcast_members(LocalState) ->
-    riak_dt_orswot:value(LocalState).
 
 init_peers(Members) ->
     case length(Members) of

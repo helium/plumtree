@@ -11,17 +11,17 @@ ensure_started(App) ->
     end.
 
 start_link() ->
-    ensure_started(cyrpto),
+    ensure_started(crypto),
     ensure_started(lager),
     plumtree_sup:start_link().
 
 start() ->
-    ensure_started(cyrpto),
+    ensure_started(crypto),
     ensure_started(lager),
     application:start(plumtree).
 
 stop() ->
     Res = application:stop(plumtree),
-    application:stop(cyrpto),
+    application:stop(crypto),
     application:stop(lager),
     Res.
