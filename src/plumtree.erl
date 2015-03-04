@@ -2,24 +2,12 @@
 
 -export([start/0, start_link/0, stop/0]).
 
-ensure_started(App) ->
-    case application:start(App) of
-        ok ->
-            ok;
-        {error, {alread_started, App}} ->
-            ok
-    end.
-
 start_link() ->
-    ensure_started(crypto),
-    ensure_started(lager),
-    ensure_started(eleveldb),
+    application:ensure_all_started(),
     plumtree_sup:start_link().
 
 start() ->
-    ensure_started(crypto),
-    ensure_started(lager),
-    ensure_started(eleveldb),
+    application:ensure_all_started(),
     application:start(plumtree).
 
 stop() ->
