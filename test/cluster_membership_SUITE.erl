@@ -28,8 +28,10 @@
 
 init_per_suite(_Config) ->
     lager:start(),
+    %% this might help, might not...
+    os:cmd("empd -daemon"),
     {ok, Hostname} = inet:gethostname(),
-    net_kernel:start([list_to_atom("runner@"++Hostname), shortnames]),
+    {ok, _} = net_kernel:start([list_to_atom("runner@"++Hostname), shortnames]),
     lager:info("node name ~p", [node()]),
     _Config.
 
@@ -86,6 +88,7 @@ join_test(Config) ->
     [Node1, Node2 |Nodes] = proplists:get_value(nodes, Config),
     ?assertEqual(ok, rpc:call(Node1, plumtree_peer_service, join, [Node2])),
     Expected = lists:sort([Node1, Node2]),
+    wait_until_joined([Node1, Node2], Expected),
     ?assertEqual(Expected, lists:sort(get_cluster_members(Node1))),
     ?assertEqual(Expected, lists:sort(get_cluster_members(Node2))),
     %% make sure the last 2 are still singletons
@@ -111,6 +114,7 @@ leave_test(Config) ->
     [?assertEqual(ok, rpc:call(Node, plumtree_peer_service, join, [Node1]))
      || Node <- OtherNodes],
     Expected = lists:sort(Nodes),
+    wait_until_joined(Nodes, Expected),
     [?assertEqual({Node, Expected}, {Node,
                                      lists:sort(get_cluster_members(Node))})
      || Node <- Nodes],
@@ -174,3 +178,13 @@ wait_until_left(Nodes, LeavingNode) ->
                             || Node <-
                             Nodes])
         end, 60*2, 500).
+
+wait_until_joined(Nodes, ExpectedCluster) ->
+    wait_until(fun() ->
+                lists:all(fun(X) -> X == true end, [
+                        lists:sort(ExpectedCluster) ==
+                        lists:sort(get_cluster_members(Node))
+                        || Node <-
+                           Nodes])
+        end, 60*2, 500).
+
