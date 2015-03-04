@@ -10,6 +10,7 @@ include tools.mk
 
 compile: deps
 	./rebar3 compile
+	cd _build/lib/eleveldb && make
 
 rel:
 	./rebar3 release

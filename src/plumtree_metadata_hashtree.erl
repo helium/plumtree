@@ -61,12 +61,12 @@
 %%%===================================================================
 
 %% @doc Starts the process using {@link start_link/1}, passing in the
-%% directory where other cluster metadata is stored in `platform_data_dir'
+%% directory where other cluster metadata is stored in `plumtree_data_dir'
 %% as the data root.
 -spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
-    PRoot = app_helper:get_env(plumtree, platform_data_dir),
-    DataRoot = filename:join(PRoot, "cluster_meta/trees"),
+    PRoot = app_helper:get_env(plumtree, plumtree_data_dir),
+    DataRoot = filename:join(PRoot, "trees"),
     start_link(DataRoot).
 
 %% @doc Starts a registered process that manages a {@link
@@ -169,7 +169,7 @@ compare(RemoteFun, HandlerFun, HandlerAcc) ->
 
 init([DataRoot]) ->
     schedule_tick(),
-    Tree = hashtree_tree:new(cluster_meta, [{data_dir, DataRoot}, {num_levels, 2}]),
+    Tree = hashtree_tree:new(plumtree, [{data_dir, DataRoot}, {num_levels, 2}]),
     State = #state{tree=Tree,
                    built=false,
                    lock=undefined},

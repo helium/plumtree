@@ -13,11 +13,13 @@ ensure_started(App) ->
 start_link() ->
     ensure_started(crypto),
     ensure_started(lager),
+    ensure_started(eleveldb),
     plumtree_sup:start_link().
 
 start() ->
     ensure_started(crypto),
     ensure_started(lager),
+    ensure_started(eleveldb),
     application:start(plumtree).
 
 stop() ->

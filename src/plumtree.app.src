@@ -7,7 +7,8 @@
                   kernel,
                   stdlib,
                   crypto,
-                  lager
+                  lager,
+                  eleveldb
                  ]},
   {mod, { plumtree_app, []}},
   {modules, []},
