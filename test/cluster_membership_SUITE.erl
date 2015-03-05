@@ -213,6 +213,7 @@ start_node(Name, Case, Clean) ->
     %% have the slave nodes monitor the runner node, so they can't outlive it
     NodeConfig = [
             {monitor_master, true},
+            {erl_flags, "-smp"}, %% smp for the eleveldb god
             {startup_functions, [
                     {code, set_path, [CodePath]}
                     ]}],
