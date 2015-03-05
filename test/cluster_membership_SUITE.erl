@@ -14,7 +14,8 @@
     join_test/1,
     join_nonexistant_node_test/1,
     join_self_test/1,
-    leave_test/1
+    leave_test/1,
+    sticky_membership_test/1
         ]).
 
 -include_lib("common_test/include/ct.hrl").
@@ -40,32 +41,8 @@ end_per_suite(_Config) ->
     _Config.
 
 init_per_testcase(Case, Config) ->
-    CodePath = lists:filter(fun filelib:is_dir/1, code:get_path()),
-    %% have the slave nodes monitor the runner node, so they can't outlive it
-    NodeConfig = [
-            {monitor_master, true},
-            {startup_functions, [
-                    {code, set_path, [CodePath]}
-                    ]}],
     Nodes = pmap(fun(N) ->
-                    {ok, Node} = ct_slave:start(N, NodeConfig),
-                    NodeDir = filename:join(["/tmp", Node, Case]),
-                    %% yolo, if this deletes your HDD, I'm sorry...
-                    os:cmd("rm -rf "++NodeDir),
-                    ok = rpc:call(Node, application, load, [plumtree]),
-                    ok = rpc:call(Node, application, load, [lager]),
-                    ok = rpc:call(Node, application, set_env, [lager,
-                                                               log_root,
-                                                               NodeDir]),
-                    ok = rpc:call(Node, application, set_env, [plumtree,
-                                                               plumtree_data_dir,
-                                                              NodeDir]),
-                    {ok, _} = rpc:call(Node, application, ensure_all_started, [plumtree]),
-                    ok = wait_until(fun() ->
-                                    undefined /= rpc:call(Node, ets, info,
-                                                          [cluster_state])
-                            end, 5, 100),
-                    Node
+                    start_node(N, Case, true)
             end, [jaguar, shadow, thorn, pyros]),
     {ok, _} = ct_cover:add_nodes(Nodes),
     [{nodes, Nodes}|Config].
@@ -77,6 +54,7 @@ end_per_testcase(_, _Config) ->
 all() ->
     [singleton_test, join_test, join_nonexistant_node_test, join_self_test,
     leave_test].
+    %[sticky_membership_test].
 
 singleton_test(Config) ->
     Nodes = proplists:get_value(nodes, Config),
@@ -128,6 +106,41 @@ leave_test(Config) ->
     %% node1 should be offline
     ?assertEqual(pang, net_adm:ping(Node1)),
     ok.
+
+sticky_membership_test(Config) ->
+    [Node1|OtherNodes] = Nodes = proplists:get_value(nodes, Config),
+    [?assertEqual(ok, rpc:call(Node, plumtree_peer_service, join, [Node1]))
+     || Node <- OtherNodes],
+    Expected = lists:sort(Nodes),
+    wait_until_joined(Nodes, Expected),
+    [?assertEqual({Node, Expected}, {Node,
+                                     lists:sort(get_cluster_members(Node))})
+     || Node <- Nodes],
+    ct_slave:stop(jaguar),
+    wait_until_offline(Node1),
+    %% check the membership is the same
+    [?assertEqual({Node, Expected}, {Node,
+                                     lists:sort(get_cluster_members(Node))})
+     || Node <- OtherNodes],
+    start_node(jaguar, sticky_membership_test, false),
+    ?assertEqual({Node1, Expected}, {Node1,
+                                    lists:sort(get_cluster_members(Node1))}),
+    ct_slave:stop(jaguar),
+    wait_until_offline(Node1),
+    [Node2|LastTwo] = OtherNodes,
+    ?assertEqual(ok, rpc:call(Node2, plumtree_peer_service, leave, [])),
+    ok = wait_until_left(LastTwo, Node2),
+    wait_until_offline(Node2),
+    Expected2 = lists:sort(Nodes -- [Node2]),
+    [?assertEqual({Node, Expected2}, {Node,
+                                      lists:sort(get_cluster_members(Node))})
+     || Node <- LastTwo],
+    start_node(jaguar, sticky_membership_test, false),
+    ok = wait_until_left([Node1], Node2),
+    ?assertEqual({Node1, Expected2}, {Node1,
+                                    lists:sort(get_cluster_members(Node1))}),
+    ok.
+
 
 %% ===================================================================
 %% utility functions
@@ -187,4 +200,42 @@ wait_until_joined(Nodes, ExpectedCluster) ->
                         || Node <-
                            Nodes])
         end, 60*2, 500).
+
+wait_until_offline(Node) ->
+    wait_until(fun() ->
+                pang == net_adm:ping(Node)
+        end, 60*2, 500).
+
+start_node(Name, Case, Clean) ->
+    CodePath = lists:filter(fun filelib:is_dir/1, code:get_path()),
+    %% have the slave nodes monitor the runner node, so they can't outlive it
+    NodeConfig = [
+            {monitor_master, true},
+            {startup_functions, [
+                    {code, set_path, [CodePath]}
+                    ]}],
+    {ok, Node} = ct_slave:start(Name, NodeConfig),
+    NodeDir = filename:join(["/tmp", Node, Case]),
+    case Clean of
+        true ->
+            %% yolo, if this deletes your HDD, I'm sorry...
+            os:cmd("rm -rf "++NodeDir);
+        _ ->
+            ok
+    end,
+    ok = rpc:call(Node, application, load, [plumtree]),
+    ok = rpc:call(Node, application, load, [lager]),
+    ok = rpc:call(Node, application, set_env, [lager,
+                                               log_root,
+                                               NodeDir]),
+    ok = rpc:call(Node, application, set_env, [plumtree,
+                                               plumtree_data_dir,
+                                               NodeDir]),
+    {ok, _} = rpc:call(Node, application, ensure_all_started, [plumtree]),
+    ok = wait_until(fun() ->
+                    undefined /= rpc:call(Node, ets, info,
+                                          [cluster_state])
+            end, 5, 100),
+    Node.
+
 

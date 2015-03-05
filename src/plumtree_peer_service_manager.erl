@@ -22,14 +22,14 @@
 
 -define(TBL, cluster_state).
 
--export([init/0, get_local_state/0, get_actor/0, update_state/1]).
+-export([init/0, get_local_state/0, get_actor/0, update_state/1, reset_state/0]).
 
 init() ->
     %% setup ETS table for cluster_state
     _ = try ets:new(?TBL, [named_table, public, set, {keypos, 1}]) of
             _Res ->
                 gen_actor(),
-                add_self(),
+                maybe_load_state_from_disk(),
                 ok
         catch
             error:badarg ->
@@ -58,6 +58,12 @@ get_actor() ->
 
 %% @doc update cluster_state
 update_state(State) ->
+    write_state_to_disk(State),
+    ets:insert(?TBL, {cluster_state, State}).
+
+reset_state() ->
+    State = add_self(),
+    write_state_to_disk(State),
     ets:insert(?TBL, {cluster_state, State}).
 
 %%% ------------------------------------------------------------------
@@ -79,3 +85,36 @@ gen_actor() ->
     Term = Node ++ TS,
     Actor = crypto:hash(sha, Term),
     ets:insert(?TBL, {actor, Actor}).
+
+data_root() ->
+    case application:get_env(plumtree, plumtree_data_dir) of
+        {ok, PRoot} -> filename:join(PRoot, "peer_service");
+        undefined -> undefined
+    end.
+
+write_state_to_disk(State) ->
+    case data_root() of
+        undefined ->
+            ok;
+        Dir ->
+            File = filename:join(Dir, "cluster_state"),
+            filelib:ensure_dir(File),
+            ok = file:write_file(File,
+                                 riak_dt_orswot:to_binary(State))
+    end.
+
+maybe_load_state_from_disk() ->
+    case data_root() of
+        undefined ->
+            add_self();
+        Dir ->
+            case filelib:is_regular(filename:join(Dir, "cluster_state")) of
+                true ->
+                    {ok, Bin} = file:read_file(filename:join(Dir,
+                                                             "cluster_state")),
+                    {ok, State} = riak_dt_orswot:from_binary(Bin),
+                    update_state(State);
+                false ->
+                    add_self()
+            end
+    end.
