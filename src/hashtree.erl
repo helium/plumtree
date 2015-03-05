@@ -554,7 +554,7 @@ sha(Chunk, Bin, Ctx) ->
     end.
 
 get_env(Key, Default) ->
-    CoreEnv = app_helper:get_env(riak_core, Key, Default),
+    CoreEnv = app_helper:get_env(plumtree, Key, Default),
     app_helper:get_env(riak_kv, Key, CoreEnv).
 
 -spec update_levels(integer(),
@@ -951,7 +951,7 @@ do_local(N) ->
     A4 = update_tree(A3),
     B4 = update_tree(B3),
     KeyDiff = local_compare(A4, B4),
-    io:format("KeyDiff: ~p~n", [KeyDiff]),
+    lager:info("KeyDiff: ~p~n", [KeyDiff]),
     close(A4),
     close(B4),
     destroy(A4),
@@ -979,7 +979,7 @@ do_concurrent_build(N1, N2) ->
 
     [A4, B4] = peval([F1, F2]),
     KeyDiff = local_compare(A4, B4),
-    io:format("KeyDiff: ~p~n", [KeyDiff]),
+    lager:info("KeyDiff: ~p~n", [KeyDiff]),
 
     close(A4),
     close(B4),
@@ -1015,7 +1015,7 @@ do_remote(N) ->
                      receive {remote, X} -> X end
              end,
     KeyDiff = compare(B4, Remote),
-    io:format("KeyDiff: ~p~n", [KeyDiff]),
+    lager:info("KeyDiff: ~p~n", [KeyDiff]),
 
     %% Signal spawned process to print stats and exit
     Other ! done,
@@ -1035,8 +1035,8 @@ message_loop(Tree, Msgs, Bytes) ->
             Size = byte_size(term_to_binary(Reply)),
             message_loop(Tree, Msgs+1, Bytes+Size);
         done ->
-            io:format("Exchanged messages: ~b~n", [Msgs]),
-            io:format("Exchanged bytes:    ~b~n", [Bytes]),
+            lager:info("Exchanged messages: ~b~n", [Msgs]),
+            lager:info("Exchanged bytes:    ~b~n", [Bytes]),
             ok
     end.
 

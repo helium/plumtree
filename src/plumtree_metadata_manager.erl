@@ -657,7 +657,7 @@ dets_filename_part(Part) when is_atom(Part) ->
     dets_filename_part(list_to_binary(atom_to_list(Part)));
 dets_filename_part(Part) when is_binary(Part) ->
     <<MD5Int:128/integer>> = crypto:hash(md5, (Part)),
-    plumtree_util:integer_to_list(MD5Int, 16).
+    integer_to_list(MD5Int, 16).
 
 dets_filename_trailer(FullPrefix) ->
     [dets_filename_trailer_part(Part) || Part <- tuple_to_list(FullPrefix)].
@@ -679,7 +679,7 @@ data_root(Opts) ->
     end.
 
 default_data_root() ->
-    case application:get_env(plumtree, platform_data_dir) of
+    case application:get_env(plumtree, plumtree_data_dir) of
         {ok, PRoot} -> filename:join(PRoot, "cluster_meta");
         undefined -> undefined
     end.

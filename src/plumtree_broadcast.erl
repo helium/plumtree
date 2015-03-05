@@ -25,7 +25,7 @@
 -export([start_link/0,
          start_link/4,
          broadcast/2,
-         ring_update/1,
+         update/1,
          broadcast_members/0,
          broadcast_members/1,
          exchanges/0,
@@ -111,15 +111,13 @@
 %% to generate membership updates as the ring changes.
 -spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
-    %% TODO update this to use plumtree_peer_service
-    %%{ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    %%Members = all_broadcast_members(Ring),
-    %%{InitEagers, InitLazys} = init_peers(Members),
-    %%Mods = app_helper:get_env(plumtree, broadcast_mods, [plumtree_metadata_manager]),
-    %%Res = start_link(Members, InitEagers, InitLazys, Mods),
-    %%riak_core_ring_events:add_sup_callback(fun ?MODULE:ring_update/1),
-    %%Res.
-    ok.
+    {ok, LocalState} = plumtree_peer_service_manager:get_local_state(),
+    Members = riak_dt_orswot:value(LocalState),
+    {InitEagers, InitLazys} = init_peers(Members),
+    Mods = app_helper:get_env(plumtree, broadcast_mods, [plumtree_metadata_manager]),
+    Res = start_link(Members, InitEagers, InitLazys, Mods),
+    plumtree_peer_service_events:add_sup_callback(fun ?MODULE:update/1),
+    Res.
 
 %% @doc Starts the broadcast server on this node. `InitMembers' must be a list
 %% of all members known to this node when starting the broadcast server.
@@ -149,11 +147,9 @@ broadcast(Broadcast, Mod) ->
     {MessageId, Payload} = Mod:broadcast_data(Broadcast),
     gen_server:cast(?SERVER, {broadcast, MessageId, Payload, Mod}).
 
-%% TODO remove this and replace with plumtree_peer_service
-%% @doc Notifies broadcast server of membership update given a new ring
--spec ring_update(riak_core_ring:riak_core_ring()) -> ok.
-ring_update(Ring) ->
-    gen_server:cast(?SERVER, {ring_update, Ring}).
+%% @doc Notifies broadcast server of membership update 
+update(LocalState) ->
+    gen_server:cast(?SERVER, {update, LocalState}).
 
 %% @doc Returns the broadcast servers view of full cluster membership.
 %% Wait indefinitely for a response is returned from the process
@@ -281,8 +277,8 @@ handle_cast({graft, MessageId, Mod, Round, Root, From}, State) ->
     Result = Mod:graft(MessageId),
     State1 = handle_graft(Result, MessageId, Mod, Round, Root, From, State),
     {noreply, State1};
-handle_cast({ring_update, Ring}, State=#state{all_members=BroadcastMembers}) ->
-    CurrentMembers = ordsets:from_list(all_broadcast_members(Ring)),
+handle_cast({update, LocalState}, State=#state{all_members=BroadcastMembers}) ->
+    CurrentMembers = ordsets:from_list(LocalState),
     New = ordsets:subtract(CurrentMembers, BroadcastMembers),
     Removed = ordsets:subtract(BroadcastMembers, CurrentMembers),
     State1 = case ordsets:size(New) > 0 of
@@ -591,10 +587,6 @@ reset_peers(AllMembers, EagerPeers, LazyPeers, State) ->
       lazy_sets     = orddict:new(),
       all_members   = ordsets:from_list(AllMembers)
      }.
-
-%% TODO remove and replace with plumtree_peer_service
-all_broadcast_members(Ring) ->
-    riak_core_ring:all_members(Ring).
 
 init_peers(Members) ->
     case length(Members) of
