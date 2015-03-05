@@ -47,10 +47,10 @@ join(_, Node, _Auto) ->
     attempt_join(Node).
 
 attempt_join(Node) ->
-    io:format("Sent join request to: ~p~n", [Node]),
+    lager:info("Sent join request to: ~p~n", [Node]),
     case net_kernel:connect(Node) of
         false ->
-            io:format("Unable to connect to ~p~n", [Node]),
+            lager:info("Unable to connect to ~p~n", [Node]),
             {error, not_reachable};
         true ->
             {ok, Local} = plumtree_peer_service_manager:get_local_state(),

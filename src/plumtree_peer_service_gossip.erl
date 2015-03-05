@@ -76,11 +76,11 @@ handle_info(gossip, State) ->
     {noreply, State};
 
 handle_info(_Info, State) ->
-    io:format("Unexpected: ~p,~p.~n", [_Info, State]),
+    lager:info("Unexpected: ~p,~p.~n", [_Info, State]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-    io:format("terminate ~p, ~p.~n", [_Reason, _State]),
+    lager:info("terminate ~p, ~p.~n", [_Reason, _State]),
     {ok, _State}.
 
 code_change(_OldVsn, State, _Extra) ->
