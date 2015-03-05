@@ -147,7 +147,7 @@ sticky_membership_test(Config) ->
 %% ===================================================================
 
 get_cluster_members(Node) ->
-    {ok, Res} = rpc:call(Node, plumtree_peer_service_manager, get_local_state, []),
+    {Node, {ok, Res}} = {Node, rpc:call(Node, plumtree_peer_service_manager, get_local_state, [])},
     riak_dt_orswot:value(Res).
 
 pmap(F, L) ->
@@ -214,28 +214,37 @@ start_node(Name, Case, Clean) ->
             {startup_functions, [
                     {code, set_path, [CodePath]}
                     ]}],
-    {ok, Node} = ct_slave:start(Name, NodeConfig),
-    NodeDir = filename:join(["/tmp", Node, Case]),
-    case Clean of
-        true ->
-            %% yolo, if this deletes your HDD, I'm sorry...
-            os:cmd("rm -rf "++NodeDir);
-        _ ->
-            ok
-    end,
-    ok = rpc:call(Node, application, load, [plumtree]),
-    ok = rpc:call(Node, application, load, [lager]),
-    ok = rpc:call(Node, application, set_env, [lager,
-                                               log_root,
-                                               NodeDir]),
-    ok = rpc:call(Node, application, set_env, [plumtree,
-                                               plumtree_data_dir,
-                                               NodeDir]),
-    {ok, _} = rpc:call(Node, application, ensure_all_started, [plumtree]),
-    ok = wait_until(fun() ->
-                    undefined /= rpc:call(Node, ets, info,
-                                          [cluster_state])
-            end, 5, 100),
-    Node.
+    case ct_slave:start(Name, NodeConfig) of
+	{ok, Node} ->
+		NodeDir = filename:join(["/tmp", Node, Case]),
+		case Clean of
+		true ->
+		%% yolo, if this deletes your HDD, I'm sorry...
+		os:cmd("rm -rf "++NodeDir);
+		_ ->
+		ok
+		end,
+		ok = rpc:call(Node, application, load, [plumtree]),
+		ok = rpc:call(Node, application, load, [lager]),
+		ok = rpc:call(Node, application, set_env, [lager,
+				log_root,
+				NodeDir]),
+		ok = rpc:call(Node, application, set_env, [plumtree,
+				plumtree_data_dir,
+				NodeDir]),
+	{ok, _} = rpc:call(Node, application, ensure_all_started, [plumtree]),
+		ok = wait_until(fun() ->
+				case rpc:call(Node, plumtree_peer_service_manager, get_local_state, []) of
+				{ok, _Res} -> true;
+				_ -> false
+				end
+				end, 60, 500),
+		Node;
+	{error, already_started, Node} ->
+		ct_slave:stop(Name),
+		wait_until_offline(Node),
+		start_node(Name, Case, Clean)
+    end.
+		
 
 

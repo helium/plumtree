@@ -278,8 +278,7 @@ handle_cast({graft, MessageId, Mod, Round, Root, From}, State) ->
     State1 = handle_graft(Result, MessageId, Mod, Round, Root, From, State),
     {noreply, State1};
 handle_cast({update, LocalState}, State=#state{all_members=BroadcastMembers}) ->
-    MemberList = riak_dt_orswot:value(LocalState),
-    CurrentMembers = ordsets:from_list(MemberList),
+    CurrentMembers = ordsets:from_list(LocalState),
     New = ordsets:subtract(CurrentMembers, BroadcastMembers),
     Removed = ordsets:subtract(BroadcastMembers, CurrentMembers),
     State1 = case ordsets:size(New) > 0 of
