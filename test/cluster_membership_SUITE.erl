@@ -30,7 +30,7 @@
 init_per_suite(_Config) ->
     lager:start(),
     %% this might help, might not...
-    os:cmd("empd -daemon"),
+    os:cmd(os:find_executable("epmd")++" -daemon"),
     {ok, Hostname} = inet:gethostname(),
     {ok, _} = net_kernel:start([list_to_atom("runner@"++Hostname), shortnames]),
     lager:info("node name ~p", [node()]),
