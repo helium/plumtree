@@ -53,8 +53,7 @@ end_per_testcase(_, _Config) ->
 
 all() ->
     [singleton_test, join_test, join_nonexistant_node_test, join_self_test,
-    leave_test].
-    %[sticky_membership_test].
+    leave_test, sticky_membership_test].
 
 singleton_test(Config) ->
     Nodes = proplists:get_value(nodes, Config),
@@ -139,6 +138,9 @@ sticky_membership_test(Config) ->
     ok = wait_until_left([Node1], Node2),
     ?assertEqual({Node1, Expected2}, {Node1,
                                     lists:sort(get_cluster_members(Node1))}),
+    start_node(shadow, sticky_membership_test, false),
+    %% node 2 should be a singleton now
+    ?assertEqual([Node2], get_cluster_members(Node2)),
     ok.
 
 
@@ -215,36 +217,33 @@ start_node(Name, Case, Clean) ->
                     {code, set_path, [CodePath]}
                     ]}],
     case ct_slave:start(Name, NodeConfig) of
-	{ok, Node} ->
-		NodeDir = filename:join(["/tmp", Node, Case]),
-		case Clean of
-		true ->
-		%% yolo, if this deletes your HDD, I'm sorry...
-		os:cmd("rm -rf "++NodeDir);
-		_ ->
-		ok
-		end,
-		ok = rpc:call(Node, application, load, [plumtree]),
-		ok = rpc:call(Node, application, load, [lager]),
-		ok = rpc:call(Node, application, set_env, [lager,
-				log_root,
-				NodeDir]),
-		ok = rpc:call(Node, application, set_env, [plumtree,
-				plumtree_data_dir,
-				NodeDir]),
-	{ok, _} = rpc:call(Node, application, ensure_all_started, [plumtree]),
-		ok = wait_until(fun() ->
-				case rpc:call(Node, plumtree_peer_service_manager, get_local_state, []) of
-				{ok, _Res} -> true;
-				_ -> false
-				end
-				end, 60, 500),
-		Node;
-	{error, already_started, Node} ->
-		ct_slave:stop(Name),
-		wait_until_offline(Node),
-		start_node(Name, Case, Clean)
+        {ok, Node} ->
+            NodeDir = filename:join(["/tmp", Node, Case]),
+            case Clean of
+                true ->
+                    %% yolo, if this deletes your HDD, I'm sorry...
+                    os:cmd("rm -rf "++NodeDir);
+                _ ->
+                    ok
+            end,
+            ok = rpc:call(Node, application, load, [plumtree]),
+            ok = rpc:call(Node, application, load, [lager]),
+            ok = rpc:call(Node, application, set_env, [lager,
+                                                       log_root,
+                                                       NodeDir]),
+            ok = rpc:call(Node, application, set_env, [plumtree,
+                                                       plumtree_data_dir,
+                                                       NodeDir]),
+            {ok, _} = rpc:call(Node, application, ensure_all_started, [plumtree]),
+            ok = wait_until(fun() ->
+                            case rpc:call(Node, plumtree_peer_service_manager, get_local_state, []) of
+                                {ok, _Res} -> true;
+                                _ -> false
+                            end
+                    end, 60, 500),
+            Node;
+        {error, already_started, Node} ->
+            ct_slave:stop(Name),
+            wait_until_offline(Node),
+            start_node(Name, Case, Clean)
     end.
-		
-
-

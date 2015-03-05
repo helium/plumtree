@@ -62,7 +62,8 @@ update_state(State) ->
     ets:insert(?TBL, {cluster_state, State}).
 
 reset_state() ->
-    State = add_self(),
+    add_self(),
+    {ok, State} = get_local_state(),
     write_state_to_disk(State),
     ets:insert(?TBL, {cluster_state, State}).
 
@@ -98,7 +99,9 @@ write_state_to_disk(State) ->
             ok;
         Dir ->
             File = filename:join(Dir, "cluster_state"),
-            filelib:ensure_dir(File),
+            ok = filelib:ensure_dir(File),
+            lager:info("writing state ~p to disk ~p",
+                       [State, riak_dt_orswot:to_binary(State)]),
             ok = file:write_file(File,
                                  riak_dt_orswot:to_binary(State))
     end.
@@ -113,6 +116,7 @@ maybe_load_state_from_disk() ->
                     {ok, Bin} = file:read_file(filename:join(Dir,
                                                              "cluster_state")),
                     {ok, State} = riak_dt_orswot:from_binary(Bin),
+                    lager:info("read state from file ~p~n", [State]),
                     update_state(State);
                 false ->
                     add_self()

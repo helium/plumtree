@@ -1,17 +1,9 @@
 -module(plumtree).
 
--export([start/0, start_link/0, stop/0]).
-
-start_link() ->
-    application:ensure_all_started(),
-    plumtree_sup:start_link().
+-export([start/0, stop/0]).
 
 start() ->
-    application:ensure_all_started(),
-    application:start(plumtree).
+    application:ensure_all_started(plumtree).
 
 stop() ->
-    Res = application:stop(plumtree),
-    application:stop(crypto),
-    application:stop(lager),
-    Res.
+    application:stop(plumtree).

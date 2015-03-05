@@ -8,6 +8,11 @@ all: compile
 
 include tools.mk
 
+test: common_test
+
+common_test:
+	./rebar3 ct
+
 compile: deps
 	./rebar3 compile
 
