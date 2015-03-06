@@ -182,12 +182,10 @@ wait_until_converged(Nodes, Prefix, Key, ExpectedValue) ->
     plumtree_test_utils:wait_until(fun() ->
                 lists:all(fun(X) -> X == true end,
                           plumtree_test_utils:pmap(fun(Node) ->
-                                ct:pal("value ~p -- ~p~n", [get_metadata(Node,
-                                                                       Prefix,
-                                                                       Key,
-                                                                       []),
-                                                          ExpectedValue]),
-                                ExpectedValue == get_metadata(Node, Prefix, Key, [])
+                                ExpectedValue == get_metadata(Node, Prefix,
+                                                              Key,
+                                                              [{allow_put,
+                                                                false}])
                         end, Nodes))
         end, 60*2, 500).
 
