@@ -13,12 +13,12 @@ RICON 2014 talk[6].
 A special thanks to Jordan, Joao and the team at Basho for providing much of
 the code contained in this library. 
 
-[http://www.gsd.inesc-id.pt/~jleitao/pdf/srds07-leitao.pdf][1]
-[https://github.com/basho/riak_core][2]
-[https://github.com/basho/riak_dt][3]
-[http://haslab.uminho.pt/cbm/files/1210.3368v1.pdf][4]
-[https://www.youtube.com/watch?v=s4cCUTPU8GI][5]
-[https://www.youtube.com/watch?v=bo367a6ZAwM][6]
+1. http://www.gsd.inesc-id.pt/~jleitao/pdf/srds07-leitao.pdf
+2. https://github.com/basho/riak_core
+3. https://github.com/basho/riak_dt
+4. http://haslab.uminho.pt/cbm/files/1210.3368v1.pdf
+5. https://www.youtube.com/watch?v=s4cCUTPU8GI
+6. https://www.youtube.com/watch?v=bo367a6ZAwM
 
 
 Build
