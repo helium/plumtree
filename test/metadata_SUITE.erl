@@ -129,12 +129,19 @@ siblings_test(Config) ->
     ok = wait_until_converged(BNodes, {foo, bar}, baz, mork),
     plumtree_test_utils:heal_cluster(ANodes, BNodes),
     %% block until the canary key converges
-    ok = wait_until_converged(ANodes, {foo, bar}, canary, 2),
-    %% XXX expect siblings here?
-    Res = get_metadata(Node1, {foo, bar}, baz, [{resolver, fun(A, B) -> [A, B] end}]),
-    lager:info("Res ~p", [Res]),
-    Res2 = get_metadata(Node3, {foo, bar}, baz, []),
-    lager:info("Res ~p", [Res2]),
+    ok = wait_until_converged(Nodes, {foo, bar}, canary, 2),
+    %% make sure we have siblings, but don't resolve them yet
+    ok = wait_until_sibling(Nodes, {foo, bar}, baz),
+    %% resolve the sibling
+    spork = get_metadata(Node1, {foo, bar}, baz, [{resolver, fun(_A, _B) ->
+                            spork end}, {allow_put, false}]),
+    %% without allow_put set, all the siblings are still there...
+    ok = wait_until_sibling(Nodes, {foo, bar}, baz),
+    %% resolve the sibling and write it back
+    spork = get_metadata(Node1, {foo, bar}, baz, [{resolver, fun(_A, _B) ->
+                            spork end}, {allow_put, true}]),
+    %% check all the nodes see the resolution
+    ok = wait_until_converged(Nodes, {foo, bar}, baz, spork),
     ok.
 
 
@@ -155,7 +162,27 @@ wait_until_converged(Nodes, Prefix, Key, ExpectedValue) ->
     plumtree_test_utils:wait_until(fun() ->
                 lists:all(fun(X) -> X == true end,
                           plumtree_test_utils:pmap(fun(Node) ->
+                                ct:pal("value ~p -- ~p~n", [get_metadata(Node,
+                                                                       Prefix,
+                                                                       Key,
+                                                                       []),
+                                                          ExpectedValue]),
                                 ExpectedValue == get_metadata(Node, Prefix, Key, [])
                         end, Nodes))
         end, 60*2, 500).
 
+
+wait_until_sibling(Nodes, Prefix, Key) ->
+    plumtree_test_utils:wait_until(fun() ->
+                lists:all(fun(X) -> X == true end,
+                          plumtree_test_utils:pmap(fun(Node) ->
+                                case rpc:call(Node, plumtree_metadata_manager,
+                                              get, [{Prefix, Key}]) of
+                                    undefined -> false;
+                                    Value ->
+                                        rpc:call(Node,
+                                                 plumtree_metadata_object,
+                                                 value_count, [Value]) > 1
+                                end
+                        end, Nodes))
+        end, 60*2, 500).
