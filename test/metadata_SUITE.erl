@@ -11,7 +11,8 @@
 
 -export([
     read_write_delete_test/1,
-    partitioned_cluster_test/1
+    partitioned_cluster_test/1,
+    siblings_test/1
         ]).
 
 -include_lib("common_test/include/ct.hrl").
@@ -51,7 +52,7 @@ end_per_testcase(_, _Config) ->
     ok.
 
 all() ->
-    [read_write_delete_test, partitioned_cluster_test].
+    [read_write_delete_test, partitioned_cluster_test, siblings_test].
 
 read_write_delete_test(Config) ->
     [Node1|OtherNodes] = Nodes = proplists:get_value(nodes, Config),
@@ -96,6 +97,46 @@ partitioned_cluster_test(Config) ->
     %% all the nodes should see the new value
     ok = wait_until_converged(Nodes, {foo, bar}, baz, norf),
     ok.
+
+siblings_test(Config) ->
+    [Node1|OtherNodes] = Nodes = proplists:get_value(nodes, Config),
+    [?assertEqual(ok, rpc:call(Node, plumtree_peer_service, join, [Node1]))
+     || Node <- OtherNodes],
+    Expected = lists:sort(Nodes),
+    ok = plumtree_test_utils:wait_until_joined(Nodes, Expected),
+    [?assertEqual({Node, Expected}, {Node,
+                                     lists:sort(plumtree_test_utils:get_cluster_members(Node))})
+     || Node <- Nodes],
+    ok = wait_until_converged(Nodes, {foo, bar}, baz, undefined),
+    ok = put_metadata(Node1, {foo, bar}, baz, quux, []),
+    ok = put_metadata(Node1, {foo, bar}, canary, 1, []),
+    ok = wait_until_converged(Nodes, {foo, bar}, baz, quux),
+    ok = wait_until_converged(Nodes, {foo, bar}, canary, 1),
+    {ANodes, BNodes} = lists:split(2, Nodes),
+    plumtree_test_utils:partition_cluster(ANodes, BNodes),
+    %% write to one side
+    ok = put_metadata(Node1, {foo, bar}, baz, norf, []),
+    ok = put_metadata(Node1, {foo, bar}, canary, 2, []),
+    %% check that whole side has the new value
+    ok = wait_until_converged(ANodes, {foo, bar}, baz, norf),
+    ok = wait_until_converged(ANodes, {foo, bar}, canary, 2),
+    %% the far side should have the old value
+    ok = wait_until_converged(BNodes, {foo, bar}, baz, quux),
+    ok = wait_until_converged(BNodes, {foo, bar}, canary, 1),
+    %% write a competing value to the other side
+    [Node3|_] = BNodes,
+    ok = put_metadata(Node3, {foo, bar}, baz, mork, []),
+    ok = wait_until_converged(BNodes, {foo, bar}, baz, mork),
+    plumtree_test_utils:heal_cluster(ANodes, BNodes),
+    %% block until the canary key converges
+    ok = wait_until_converged(ANodes, {foo, bar}, canary, 2),
+    %% XXX expect siblings here?
+    Res = get_metadata(Node1, {foo, bar}, baz, [{resolver, fun(A, B) -> [A, B] end}]),
+    lager:info("Res ~p", [Res]),
+    Res2 = get_metadata(Node3, {foo, bar}, baz, []),
+    lager:info("Res ~p", [Res2]),
+    ok.
+
 
 %% ===================================================================
 %% utility functions
