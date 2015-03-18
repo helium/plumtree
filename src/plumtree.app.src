@@ -8,7 +8,8 @@
                   stdlib,
                   crypto,
                   lager,
-                  eleveldb
+                  eleveldb,
+                  riak_dt
                  ]},
   {mod, { plumtree_app, []}},
   {modules, []},
