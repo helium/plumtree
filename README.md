@@ -2,9 +2,9 @@ plumtree
 =====
 
 Plumtree is an implementation of Plumtree[1], the epidemic broadcast protocol.
-It is extracted from the implementation in riak_core[2] and also, instead of
+It is extracted from the implementation in riak_core[2]. Instead of
 the riak_core ring and riak's ring gossip protocol, it includes a standalone
-membership gossip, build around riak_dt[3]'s ORSWOT[4].
+membership gossip, built around riak_dt[3]'s ORSWOT[4].
 
 More information on the plumtree protocol and it's history we encourage you
 to watch Jordan West's RICON West 2013 talk[5] and Joao Leitao & Jordan West's
