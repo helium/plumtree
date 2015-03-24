@@ -36,7 +36,7 @@ join(Node) ->
 
 %% @doc Convert nodename to atom
 join(NodeStr, Auto) when is_list(NodeStr) ->
-    join(erlang:list_to_atom(NodeStr), Auto);
+    join(erlang:list_to_atom(lists:flatten(NodeStr)), Auto);
 join(Node, Auto) when is_atom(Node) ->
     join(node(), Node, Auto).
 
