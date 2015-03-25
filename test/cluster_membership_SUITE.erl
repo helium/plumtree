@@ -118,7 +118,7 @@ leave_test(Config) ->
     [?assertEqual({Node, Expected}, {Node,
                                      lists:sort(plumtree_test_utils:get_cluster_members(Node))})
      || Node <- Nodes],
-    ?assertEqual(ok, rpc:call(Node1, plumtree_peer_service, leave, [])),
+    ?assertEqual(ok, rpc:call(Node1, plumtree_peer_service, leave, [[]])),
     Expected2 = lists:sort(OtherNodes),
     ok = plumtree_test_utils:wait_until_left(OtherNodes, Node1),
     %% should be a 3 node cluster now
@@ -150,7 +150,7 @@ sticky_membership_test(Config) ->
     ct_slave:stop(jaguar),
     ok = plumtree_test_utils:wait_until_offline(Node1),
     [Node2|LastTwo] = OtherNodes,
-    ?assertEqual(ok, rpc:call(Node2, plumtree_peer_service, leave, [])),
+    ?assertEqual(ok, rpc:call(Node2, plumtree_peer_service, leave, [[]])),
     ok = plumtree_test_utils:wait_until_left(LastTwo, Node2),
     ok = plumtree_test_utils:wait_until_offline(Node2),
     Expected2 = lists:sort(Nodes -- [Node2]),
