@@ -81,7 +81,7 @@ leave(_Args) when is_list(_Args) ->
             case [P || P <- Remote2List, P =:= node()] of
                 [] ->
                     %% leaving the cluster shuts down the node
-                    plumtree_peer_service_manager:reset_state(),
+                    plumtree_peer_service_manager:delete_state(),
                     stop("Leaving cluster");
                 _ ->
                     leave([])
