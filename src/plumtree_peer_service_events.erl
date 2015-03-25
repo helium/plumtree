@@ -65,8 +65,7 @@ update(LocalState) ->
 
 init([Fn]) ->
     {ok, LocalState} = plumtree_peer_service_manager:get_local_state(),
-    Members = riak_dt_orswot:value(LocalState),
-    Fn(Members),
+    Fn(LocalState),
     {ok, #state { callback = Fn }}.
 
 handle_event({update, LocalState}, State) ->
