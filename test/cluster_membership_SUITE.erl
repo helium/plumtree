@@ -35,6 +35,7 @@
     join_nonexistant_node_test/1,
     join_self_test/1,
     leave_test/1,
+    leave_rejoin_test/1,
     sticky_membership_test/1
         ]).
 
@@ -76,7 +77,7 @@ end_per_testcase(_, _Config) ->
 
 all() ->
     [singleton_test, join_test, join_nonexistant_node_test, join_self_test,
-    leave_test, sticky_membership_test].
+    leave_test, leave_rejoin_test, sticky_membership_test].
 
 singleton_test(Config) ->
     Nodes = proplists:get_value(nodes, Config),
@@ -118,7 +119,7 @@ leave_test(Config) ->
     [?assertEqual({Node, Expected}, {Node,
                                      lists:sort(plumtree_test_utils:get_cluster_members(Node))})
      || Node <- Nodes],
-    ?assertEqual(ok, rpc:call(Node1, plumtree_peer_service, leave, [])),
+    ?assertEqual(ok, rpc:call(Node1, plumtree_peer_service, leave, [[]])),
     Expected2 = lists:sort(OtherNodes),
     ok = plumtree_test_utils:wait_until_left(OtherNodes, Node1),
     %% should be a 3 node cluster now
@@ -127,6 +128,34 @@ leave_test(Config) ->
      || Node <- OtherNodes],
     %% node1 should be offline
     ?assertEqual(pang, net_adm:ping(Node1)),
+    ok.
+
+leave_rejoin_test(Config) ->
+    [Node1|OtherNodes] = Nodes = proplists:get_value(nodes, Config),
+    [Node2|_Rest] = OtherNodes,
+    [?assertEqual(ok, rpc:call(Node, plumtree_peer_service, join, [Node1]))
+     || Node <- OtherNodes],
+    Expected = lists:sort(Nodes),
+    ok = plumtree_test_utils:wait_until_joined(Nodes, Expected),
+    [?assertEqual({Node, Expected}, {Node,
+                                     lists:sort(plumtree_test_utils:get_cluster_members(Node))})
+     || Node <- Nodes],
+    ?assertEqual(ok, rpc:call(Node1, plumtree_peer_service, leave, [[]])),
+    Expected2 = lists:sort(OtherNodes),
+    ok = plumtree_test_utils:wait_until_left(OtherNodes, Node1),
+    %% should be a 3 node cluster now
+    [?assertEqual({Node, Expected2}, {Node,
+                                      lists:sort(plumtree_test_utils:get_cluster_members(Node))})
+     || Node <- OtherNodes],
+    %% node1 should be offline
+    ?assertEqual(pang, net_adm:ping(Node1)),
+    plumtree_test_utils:start_node(jaguar, Config, leave_rejoin_test),
+    %% rejoin cluster
+    ?assertEqual(ok, rpc:call(Node1, plumtree_peer_service, join, [Node2])),
+    ok = plumtree_test_utils:wait_until_joined(Nodes, Expected),
+    [?assertEqual({Node, Expected}, {Node, 
+                                     lists:sort(plumtree_test_utils:get_cluster_members(Node))})
+     || Node <- Nodes],
     ok.
 
 sticky_membership_test(Config) ->
@@ -150,7 +179,7 @@ sticky_membership_test(Config) ->
     ct_slave:stop(jaguar),
     ok = plumtree_test_utils:wait_until_offline(Node1),
     [Node2|LastTwo] = OtherNodes,
-    ?assertEqual(ok, rpc:call(Node2, plumtree_peer_service, leave, [])),
+    ?assertEqual(ok, rpc:call(Node2, plumtree_peer_service, leave, [[]])),
     ok = plumtree_test_utils:wait_until_left(LastTwo, Node2),
     ok = plumtree_test_utils:wait_until_offline(Node2),
     Expected2 = lists:sort(Nodes -- [Node2]),
