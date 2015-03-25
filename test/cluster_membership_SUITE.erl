@@ -152,6 +152,7 @@ leave_rejoin_test(Config) ->
     plumtree_test_utils:start_node(jaguar, Config, leave_rejoin_test),
     %% rejoin cluster
     ?assertEqual(ok, rpc:call(Node1, plumtree_peer_service, join, [Node2])),
+    ok = plumtree_test_utils:wait_until_joined(Nodes, Expected),
     [?assertEqual({Node, Expected}, {Node, 
                                      lists:sort(plumtree_test_utils:get_cluster_members(Node))})
      || Node <- Nodes],
