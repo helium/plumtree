@@ -40,7 +40,7 @@ stop() ->
     gen_server:call(?MODULE, stop).
 
 receive_state(PeerState) ->
-    gen_server:cast(?MODULE, {process_state, PeerState}).
+    gen_server:cast(?MODULE, {receive_state, PeerState}).
 
 
 %%%===============================================================
