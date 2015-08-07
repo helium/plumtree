@@ -132,7 +132,7 @@ start_link() ->
 %% NOTE: When starting the server using start_link/2 no automatic membership update from
 %% ring_events is registered. Use start_link/0.
 -spec start_link([nodename()], [nodename()], [nodename()], [module()]) ->
-                        {ok, pid()} | ignore | {error, term}.
+    {ok, pid()} | ignore | {error, term()}.
 start_link(InitMembers, InitEagers, InitLazys, Mods) ->
     gen_server:start_link({local, ?SERVER}, ?MODULE,
                           [InitMembers, InitEagers, InitLazys, Mods], []).
