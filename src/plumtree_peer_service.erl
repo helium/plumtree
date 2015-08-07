@@ -27,8 +27,9 @@
          attempt_join/2,
          leave/1,
          stop/0,
-         stop/1
-        ]).
+         stop/1]).
+
+-include("plumtree.hrl").
 
 %% @doc prepare node to join a cluster
 join(Node) ->
@@ -40,7 +41,7 @@ join(NodeStr, Auto) when is_list(NodeStr) ->
 join(Node, Auto) when is_atom(Node) ->
     join(node(), Node, Auto).
 
-%% @doc Initiate join. Nodes cannot join themselves. 
+%% @doc Initiate join. Nodes cannot join themselves.
 join(Node, Node, _) ->
     {error, self_join};
 join(_, Node, _Auto) ->
@@ -59,25 +60,25 @@ attempt_join(Node) ->
 
 attempt_join(Node, Local) ->
     {ok, Remote} = gen_server:call({plumtree_peer_service_gossip, Node}, send_state),
-    Merged = riak_dt_orswot:merge(Remote, Local), 
+    Merged = ?SET:merge(Remote, Local),
     _ = plumtree_peer_service_manager:update_state(Merged),
     %% broadcast to all nodes
     %% get peer list
-    Members = riak_dt_orswot:value(Merged),
+    Members = ?SET:value(Merged),
     _ = [gen_server:cast({plumtree_peer_service_gossip, P}, {receive_state, Merged}) || P <- Members, P /= node()],
     ok.
-    
+
 leave(_Args) when is_list(_Args) ->
     {ok, Local} = plumtree_peer_service_manager:get_local_state(),
     {ok, Actor} = plumtree_peer_service_manager:get_actor(),
-    {ok, Leave} = riak_dt_orswot:update({remove, node()}, Actor, Local),
+    {ok, Leave} = ?SET:update({remove, node()}, Actor, Local),
     case random_peer(Leave) of
         {ok, Peer} ->
             {ok, Remote} = gen_server:call({plumtree_peer_service_gossip, Peer}, send_state),
-            Merged = riak_dt_orswot:merge(Leave, Remote),
+            Merged = ?SET:merge(Leave, Remote),
             _ = gen_server:cast({plumtree_peer_service_gossip, Peer}, {receive_state, Merged}),
             {ok, Remote2} = gen_server:call({plumtree_peer_service_gossip, Peer}, send_state),
-            Remote2List = riak_dt_orswot:value(Remote2),
+            Remote2List = ?SET:value(Remote2),
             case [P || P <- Remote2List, P =:= node()] of
                 [] ->
                     %% leaving the cluster shuts down the node
@@ -100,7 +101,7 @@ stop(Reason) ->
     init:stop().
 
 random_peer(Leave) ->
-    Members = riak_dt_orswot:value(Leave),
+    Members = ?SET:value(Leave),
     Peers = [P || P <- Members],
     case Peers of
         [] ->
