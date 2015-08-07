@@ -24,10 +24,19 @@
 
 -define(GOSSIP_INTERVAL, 15000).
 
--export([start_link/0, stop/0]).
+-export([start_link/0,
+         stop/0]).
+
 -export([receive_state/1]).
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
-        code_change/3]).
+
+-export([init/1,
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2,
+         code_change/3]).
+
+-include("plumtree.hrl").
 
 %%%==================================================================
 %%% gen_server api
@@ -59,12 +68,12 @@ handle_call(send_state, _From, State) ->
 
 handle_cast({receive_state, PeerState}, State) ->
     {ok, LocalState} = plumtree_peer_service_manager:get_local_state(),
-    case riak_dt_orswot:equal(PeerState, LocalState) of
+    case ?SET:equal(PeerState, LocalState) of
         true ->
             %% do nothing
             {noreply, State};
         false ->
-            Merged = riak_dt_orswot:merge(PeerState, LocalState),
+            Merged = ?SET:merge(PeerState, LocalState),
             plumtree_peer_service_manager:update_state(Merged),
             plumtree_peer_service_events:update(Merged),
             {noreply, State}
@@ -103,7 +112,7 @@ do_gossip() ->
 
 %% @doc returns a list of peer nodes
 get_peers(Local) ->
-    Members = riak_dt_orswot:value(Local),
+    Members = ?SET:value(Local),
     Peers = [X || X <- Members, X /= node()],
     Peers.
 
