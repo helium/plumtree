@@ -38,8 +38,14 @@
          debug_get_tree/2]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+-export([init/1,
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2,
+         code_change/3]).
+
+-include("plumtree.hrl").
 
 -define(SERVER, ?MODULE).
 
@@ -111,7 +117,7 @@
 -spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
     {ok, LocalState} = plumtree_peer_service_manager:get_local_state(),
-    Members = riak_dt_orswot:value(LocalState),
+    Members = ?SET:value(LocalState),
     {InitEagers, InitLazys} = init_peers(Members),
     Mods = app_helper:get_env(plumtree, broadcast_mods, [plumtree_metadata_manager]),
     Res = start_link(Members, InitEagers, InitLazys, Mods),
@@ -266,7 +272,7 @@ handle_cast({graft, MessageId, Mod, Round, Root, From}, State) ->
     State1 = handle_graft(Result, MessageId, Mod, Round, Root, From, State),
     {noreply, State1};
 handle_cast({update, LocalState}, State=#state{all_members=BroadcastMembers}) ->
-    Members = riak_dt_orswot:value(LocalState),
+    Members = ?SET:value(LocalState),
     CurrentMembers = ordsets:from_list(Members),
     New = ordsets:subtract(CurrentMembers, BroadcastMembers),
     Removed = ordsets:subtract(BroadcastMembers, CurrentMembers),
