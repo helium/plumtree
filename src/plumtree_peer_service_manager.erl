@@ -26,6 +26,7 @@
 
 %% API
 -export([start_link/0,
+         members/0,
          get_local_state/0,
          get_actor/0,
          update_state/1,
@@ -51,6 +52,10 @@
 -spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+%% @doc Return membership list.
+members() ->
+    gen_server:call(?MODULE, members, infinity).
 
 %% @doc Return local node's view of cluster membership.
 get_local_state() ->
@@ -90,6 +95,14 @@ init([]) ->
 
 %% @private
 -spec handle_call(term(), {pid(), term()}, #state{}) -> {reply, term(), #state{}}.
+handle_call(members, _From, State) ->
+    Result = case hd(ets:lookup(?TBL, cluster_state)) of
+        {cluster_state, ClusterState} ->
+            {ok, ?SET:value(ClusterState)};
+        _Else ->
+            {error, _Else}
+    end,
+    {reply, Result, State};
 handle_call(get_local_state, _From, State) ->
     Result = case hd(ets:lookup(?TBL, cluster_state)) of
         {cluster_state, ClusterState} ->

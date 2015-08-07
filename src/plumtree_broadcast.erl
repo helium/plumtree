@@ -116,8 +116,7 @@
 %% to generate membership updates as the ring changes.
 -spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
-    {ok, LocalState} = plumtree_peer_service_manager:get_local_state(),
-    Members = ?SET:value(LocalState),
+    {ok, Members} = plumtree_peer_service_manager:members(),
     {InitEagers, InitLazys} = init_peers(Members),
     Mods = app_helper:get_env(plumtree, broadcast_mods, [plumtree_metadata_manager]),
     Res = start_link(Members, InitEagers, InitLazys, Mods),
