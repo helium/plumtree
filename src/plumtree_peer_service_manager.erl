@@ -40,7 +40,7 @@
          terminate/2,
          code_change/3]).
 
--record(state, {}).
+-record(state, {actor}).
 
 -include("plumtree.hrl").
 
@@ -81,17 +81,17 @@ delete_state() ->
 -spec init([]) -> {ok, #state{}}.
 init([]) ->
     lager:info("Initializing..."),
+    Actor = gen_actor(),
     %% setup ETS table for cluster_state
     _ = try ets:new(?TBL, [named_table, public, set, {keypos, 1}]) of
             _Res ->
-                gen_actor(),
-                maybe_load_state_from_disk(),
+                maybe_load_state_from_disk(Actor),
                 ok
         catch
             error:badarg ->
                 lager:warning("Table ~p already exists", [?TBL])
         end,
-    {ok, #state{}}.
+    {ok, #state{actor=Actor}}.
 
 %% @private
 -spec handle_call(term(), {pid(), term()}, #state{}) -> {reply, term(), #state{}}.
@@ -111,14 +111,8 @@ handle_call(get_local_state, _From, State) ->
             {error, _Else}
     end,
     {reply, Result, State};
-handle_call(get_actor, _From, State) ->
-    Result = case hd(ets:lookup(?TBL, actor)) of
-        {actor, Actor} ->
-            {ok, Actor};
-        _Else ->
-            {error, _Else}
-    end,
-    {reply, Result, State};
+handle_call(get_actor, _From, #state{actor=Actor} = State) ->
+    {reply, {ok, Actor}, State};
 handle_call({update_state, NewState}, _From, State) ->
     persist_state(NewState),
     {reply, ok, State};
@@ -156,9 +150,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 %% @private
-add_self() ->
+add_self(Actor) ->
     Initial = ?SET:new(),
-    Actor = ets:lookup(?TBL, actor),
     {ok, LocalState} = ?SET:update({add, node()}, Actor, Initial),
     persist_state(LocalState).
 
@@ -168,8 +161,7 @@ gen_actor() ->
     {M, S, U} = now(),
     TS = integer_to_list(M * 1000 * 1000 * 1000 * 1000 + S * 1000 * 1000 + U),
     Term = Node ++ TS,
-    Actor = crypto:hash(sha, Term),
-    ets:insert(?TBL, {actor, Actor}).
+    crypto:hash(sha, Term).
 
 %% @private
 data_root() ->
@@ -210,10 +202,10 @@ delete_state_from_disk() ->
     end.
 
 %% @private
-maybe_load_state_from_disk() ->
+maybe_load_state_from_disk(Actor) ->
     case data_root() of
         undefined ->
-            add_self();
+            add_self(Actor);
         Dir ->
             case filelib:is_regular(filename:join(Dir, "cluster_state")) of
                 true ->
@@ -222,7 +214,7 @@ maybe_load_state_from_disk() ->
                     lager:info("read state from file ~p~n", [State]),
                     persist_state(State);
                 false ->
-                    add_self()
+                    add_self(Actor)
             end
     end.
 
