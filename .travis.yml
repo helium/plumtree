@@ -9,6 +9,7 @@ otp_release:
   - R15B03
 script:
   - make dialyzer
+  - make xref
   - make
   - make test
 notifications:
