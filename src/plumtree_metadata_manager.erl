@@ -56,9 +56,9 @@
 -include("plumtree_metadata.hrl").
 
 -define(SERVER, ?MODULE).
--define(MANIFEST, cluster_meta_manifest).
--define(MANIFEST_FILENAME, "manifest.dets").
--define(ETS, metadata_manager_prefixes_ets).
+-define(MANIFEST, plumtree_cluster_meta_manifest).
+-define(MANIFEST_FILENAME, "plumtree_meta_manifest.dets").
+-define(ETS, plumtree_metadata_manager_prefixes_ets).
 
 -record(state, {
           %% identifier used in logical clocks
