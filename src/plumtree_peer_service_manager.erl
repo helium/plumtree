@@ -94,9 +94,10 @@ handle_call(get_local_state, _From, #state{membership=Membership}=State) ->
     {reply, {ok, Membership}, State};
 handle_call(get_actor, _From, #state{actor=Actor}=State) ->
     {reply, {ok, Actor}, State};
-handle_call({update_state, NewState}, _From, State) ->
-    persist_state(NewState),
-    {reply, ok, State#state{membership=NewState}};
+handle_call({update_state, NewState}, _From, #state{membership=Membership}=State) ->
+    Merged = ?SET:merge(Membership, NewState),
+    persist_state(Merged),
+    {reply, ok, State#state{membership=Merged}};
 handle_call(delete_state, _From, State) ->
     delete_state_from_disk(),
     {reply, ok, State};
