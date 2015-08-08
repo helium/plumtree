@@ -20,8 +20,6 @@
 
 -module(plumtree_peer_service_manager).
 
--define(TBL, cluster_state).
-
 -behaviour(gen_server).
 
 %% API
@@ -40,9 +38,13 @@
          terminate/2,
          code_change/3]).
 
--record(state, {actor}).
-
 -include("plumtree.hrl").
+
+-type actor() :: binary().
+-type membership() :: ?SET:orswot().
+
+-record(state, {actor :: actor(),
+                membership :: membership() }).
 
 %%%===================================================================
 %%% API
@@ -80,42 +82,21 @@ delete_state() ->
 %% @private
 -spec init([]) -> {ok, #state{}}.
 init([]) ->
-    lager:info("Initializing..."),
     Actor = gen_actor(),
-    %% setup ETS table for cluster_state
-    _ = try ets:new(?TBL, [named_table, public, set, {keypos, 1}]) of
-            _Res ->
-                maybe_load_state_from_disk(Actor),
-                ok
-        catch
-            error:badarg ->
-                lager:warning("Table ~p already exists", [?TBL])
-        end,
-    {ok, #state{actor=Actor}}.
+    Membership = maybe_load_state_from_disk(Actor),
+    {ok, #state{actor=Actor, membership=Membership}}.
 
 %% @private
 -spec handle_call(term(), {pid(), term()}, #state{}) -> {reply, term(), #state{}}.
-handle_call(members, _From, State) ->
-    Result = case hd(ets:lookup(?TBL, cluster_state)) of
-        {cluster_state, ClusterState} ->
-            {ok, ?SET:value(ClusterState)};
-        _Else ->
-            {error, _Else}
-    end,
-    {reply, Result, State};
-handle_call(get_local_state, _From, State) ->
-    Result = case hd(ets:lookup(?TBL, cluster_state)) of
-        {cluster_state, ClusterState} ->
-            {ok, ClusterState};
-        _Else ->
-            {error, _Else}
-    end,
-    {reply, Result, State};
-handle_call(get_actor, _From, #state{actor=Actor} = State) ->
+handle_call(members, _From, #state{membership=Membership}=State) ->
+    {reply, {ok, ?SET:value(Membership)}, State};
+handle_call(get_local_state, _From, #state{membership=Membership}=State) ->
+    {reply, {ok, Membership}, State};
+handle_call(get_actor, _From, #state{actor=Actor}=State) ->
     {reply, {ok, Actor}, State};
 handle_call({update_state, NewState}, _From, State) ->
     persist_state(NewState),
-    {reply, ok, State};
+    {reply, ok, State#state{membership=NewState}};
 handle_call(delete_state, _From, State) ->
     delete_state_from_disk(),
     {reply, ok, State};
@@ -150,10 +131,11 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 %% @private
-add_self(Actor) ->
+empty_membership(Actor) ->
     Initial = ?SET:new(),
     {ok, LocalState} = ?SET:update({add, node()}, Actor, Initial),
-    persist_state(LocalState).
+    persist_state(LocalState),
+    LocalState.
 
 %% @private
 gen_actor() ->
@@ -205,20 +187,18 @@ delete_state_from_disk() ->
 maybe_load_state_from_disk(Actor) ->
     case data_root() of
         undefined ->
-            add_self(Actor);
+            empty_membership(Actor);
         Dir ->
             case filelib:is_regular(filename:join(Dir, "cluster_state")) of
                 true ->
                     {ok, Bin} = file:read_file(filename:join(Dir, "cluster_state")),
                     {ok, State} = ?SET:from_binary(Bin),
-                    lager:info("read state from file ~p~n", [State]),
-                    persist_state(State);
+                    State;
                 false ->
-                    add_self(Actor)
+                    empty_membership(Actor)
             end
     end.
 
 %% @private
 persist_state(State) ->
-    write_state_to_disk(State),
-    ets:insert(?TBL, {cluster_state, State}).
+    write_state_to_disk(State).
