@@ -56,7 +56,6 @@ init_per_suite(_Config) ->
         {error, {already_started, _}} -> ok;
         {error, {{already_started, _},_}} -> ok
     end,
-    lager:info("node name ~p", [node()]),
     _Config.
 
 end_per_suite(_Config) ->
