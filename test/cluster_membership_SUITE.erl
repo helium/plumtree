@@ -20,6 +20,8 @@
 
 -module(cluster_membership_SUITE).
 
+-compile({parse_transform, lager_transform}).
+
 -export([
          %% suite/0,
          init_per_suite/1,
