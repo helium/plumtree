@@ -53,7 +53,8 @@ init_per_suite(_Config) ->
     {ok, Hostname} = inet:gethostname(),
     case net_kernel:start([list_to_atom("runner@"++Hostname), shortnames]) of
         {ok, _} -> ok;
-        {error, {already_started, _}} -> ok
+        {error, {already_started, _}} -> ok;
+        {error, {{already_started, _},_}} -> ok
     end,
     lager:info("node name ~p", [node()]),
     _Config.
