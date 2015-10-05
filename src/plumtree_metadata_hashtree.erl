@@ -18,6 +18,7 @@
 %%
 %% -------------------------------------------------------------------
 -module(plumtree_metadata_hashtree).
+-compile({parse_transform, lager_transform}).
 
 -behaviour(gen_server).
 
