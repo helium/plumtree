@@ -18,7 +18,6 @@
 %%
 %% -------------------------------------------------------------------
 -module(plumtree_metadata_exchange_fsm).
--compile({parse_transform, lager_transform}).
 
 -behaviour(gen_fsm).
 

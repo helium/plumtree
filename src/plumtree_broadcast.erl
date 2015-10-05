@@ -18,7 +18,6 @@
 %%
 %% -------------------------------------------------------------------
 -module(plumtree_broadcast).
--compile({parse_transform, lager_transform}).
 
 -behaviour(gen_server).
 

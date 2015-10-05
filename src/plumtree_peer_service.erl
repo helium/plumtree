@@ -19,7 +19,6 @@
 %% -------------------------------------------------------------------
 
 -module(plumtree_peer_service).
--compile({parse_transform, lager_transform}).
 
 -export([join/1,
          join/2,

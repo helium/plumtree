@@ -19,7 +19,6 @@
 %% -------------------------------------------------------------------
 
 -module(plumtree_peer_service_gossip).
--compile({parse_transform, lager_transform}).
 
 -behavior(gen_server).
 
