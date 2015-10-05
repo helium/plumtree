@@ -67,7 +67,6 @@ init_per_testcase(Case, Config) ->
     Nodes = plumtree_test_utils:pmap(fun(N) ->
                     plumtree_test_utils:start_node(N, Config, Case)
             end, [electra, katana, flail, gargoyle]),
-    %%%%%%%%%%%%%%%%%%%%%%%%%% {ok, _} = ct_cover:add_nodes(Nodes),
     [{nodes, Nodes}|Config].
 
 end_per_testcase(_, _Config) ->
