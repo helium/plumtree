@@ -18,6 +18,7 @@
 %%
 %% -------------------------------------------------------------------
 -module(plumtree_metadata_manager).
+-compile({parse_transform, lager_transform}).
 
 -behaviour(gen_server).
 -behaviour(plumtree_broadcast_handler).

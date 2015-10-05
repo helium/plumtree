@@ -19,6 +19,7 @@
 %% -------------------------------------------------------------------
 
 -module(cluster_membership_SUITE).
+-compile({parse_transform, lager_transform}).
 
 -compile({parse_transform, lager_transform}).
 
@@ -70,7 +71,7 @@ init_per_testcase(Case, Config) ->
     Nodes = plumtree_test_utils:pmap(fun(N) ->
                     plumtree_test_utils:start_node(N, Config, Case)
             end, [jaguar, shadow, thorn, pyros]),
-    {ok, _} = ct_cover:add_nodes(Nodes),
+    %%%%%%%%%%%%%%%%%%%%%%%%%% {ok, _} = ct_cover:add_nodes(Nodes),
     [{nodes, Nodes}|Config].
 
 end_per_testcase(_, _Config) ->
@@ -83,7 +84,7 @@ all() ->
 
 singleton_test(Config) ->
     Nodes = proplists:get_value(nodes, Config),
-    ok = ct_cover:remove_nodes(Nodes),
+    %%%%%%%%%%%%%%%%%%%%%%%%%% ok = ct_cover:remove_nodes(Nodes),
     [[Node] = plumtree_test_utils:get_cluster_members(Node) || Node <- Nodes],
     ok.
 
