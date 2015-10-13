@@ -1,8 +1,5 @@
 REBAR ?= ./rebar
 
-test: compile
-	${REBAR} eunit skip_deps=true
-
 docs:
 	${REBAR} doc skip_deps=true
 

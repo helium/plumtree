@@ -1,5 +1,5 @@
 REBAR = $(shell pwd)/rebar
-.PHONY: deps compile rel
+.PHONY: deps compile rel test
 
 DIALYZER_APPS = kernel stdlib erts sasl eunit syntax_tools compiler crypto
 DEP_DIR="_build/lib"
