@@ -2,7 +2,6 @@ Plumtree
 =======================================================
 
 [![Build Status](https://travis-ci.org/lasp-lang/plumtree.svg?branch=master)](https://travis-ci.org/lasp-lang/plumtree)
-=====
 
 Plumtree is an implementation of Plumtree[1], the epidemic broadcast protocol.
 It is extracted from the implementation in riak_core[2]. Instead of
