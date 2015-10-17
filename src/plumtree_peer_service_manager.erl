@@ -163,8 +163,6 @@ write_state_to_disk(State) ->
         Dir ->
             File = filename:join(Dir, "cluster_state"),
             ok = filelib:ensure_dir(File),
-            lager:info("writing state ~p to disk ~p",
-                       [State, ?SET:to_binary(State)]),
             ok = file:write_file(File, ?SET:to_binary(State))
     end.
 
