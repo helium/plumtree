@@ -3,8 +3,8 @@
        {ref,"71e63212f12c25827e0c1b4198d37d5d018a7fec"}},
   1},
  {<<"riak_dt">>,
-  {git,"git://github.com/helium/riak_dt.git",
-       {ref,"15d66cb26c2028c1ad1271c359b1d5da213825c3"}},
+  {git,"git://github.com/basho/riak_dt.git",
+       {ref,"a2986bccd1cc42facdfe739495c6d13762ae0f37"}},
   0},
  {<<"lager">>,
   {git,"git://github.com/basho/lager.git",
@@ -12,5 +12,5 @@
   0},
  {<<"eleveldb">>,
   {git,"git://github.com/helium/eleveldb.git",
-       {ref,"29a5360dc0365b3330dd0cd45b0b8166f3b854be"}},
+       {ref,"4e199ab1518060d348ae0f9719d2cbf9f098e00d"}},
   0}].
