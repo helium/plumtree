@@ -10,4 +10,5 @@ script:
   - make test
 notifications:
   email: christopher.meiklejohn@gmail.com
+  email: tom@helium.com
 sudo: false
