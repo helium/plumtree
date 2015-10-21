@@ -1,6 +1,8 @@
 plumtree
 =====
 
+[![Build Status](https://travis-ci.org/helium/plumtree.svg?branch=master)](https://travis-ci.org/helium/plumtree)
+
 Plumtree is an implementation of Plumtree[1], the epidemic broadcast protocol.
 It is extracted from the implementation in riak_core[2]. Instead of
 the riak_core ring and riak's ring gossip protocol, it includes a standalone
