@@ -1,4 +1,4 @@
-REBAR = $(shell pwd)/rebar
+REBAR = $(shell pwd)/rebar3
 .PHONY: deps compile rel test
 
 DIALYZER_APPS = kernel stdlib erts sasl eunit syntax_tools compiler crypto
@@ -6,21 +6,14 @@ DEP_DIR="_build/lib"
 
 all: compile
 
+include tools.mk
+
 test: common_test
-
-deps:
-	$(REBAR) get-deps
-
-clean:
-	$(REBAR) clean
-
-distclean: clean
-	$(REBAR) delete-deps
 
 common_test:
 	$(REBAR) ct
 
-compile: deps
+compile:
 	$(REBAR) compile
 
 rel:
@@ -28,11 +21,3 @@ rel:
 
 stage:
 	$(REBAR) release -d
-
-DIALYZER_APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
-	xmerl webtool eunit syntax_tools compiler mnesia public_key snmp
-
-include tools.mk
-
-typer:
-	typer --annotate -I ../ --plt $(PLT) -r src
