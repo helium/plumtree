@@ -21,3 +21,6 @@ rel:
 
 stage:
 	$(REBAR) release -d
+
+dialyzer:
+	$(REBAR) dialyzer
