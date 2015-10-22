@@ -1,7 +1,7 @@
 Plumtree
 =======================================================
 
-[![Build Status](https://travis-ci.org/lasp-lang/plumtree.svg?branch=master)](https://travis-ci.org/lasp-lang/plumtree)
+[![Build Status](https://travis-ci.org/helium/plumtree.svg?branch=master)](https://travis-ci.org/helium/plumtree)
 
 Plumtree is an implementation of [Plumtree](http://www.gsd.inesc-id.pt/~jleitao/pdf/srds07-leitao.pdf), the epidemic broadcast protocol.  It is extracted from the implementation in [Riak Core](https://github.com/basho/riak_core). Instead of the riak_core ring and riak's ring gossip protocol, it includes a standalone membership gossip, built around the [Riak DT](https://github.com/basho/riak_dt) [ORSWOT](http://haslab.uminho.pt/cbm/files/1210.3368v1.pdf).
 
