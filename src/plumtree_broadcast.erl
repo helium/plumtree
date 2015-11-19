@@ -37,10 +37,15 @@
          debug_get_peers/3,
          debug_get_tree/2]).
 
-
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+-export([init/1,
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2,
+         code_change/3]).
+
+-include("plumtree.hrl").
 
 -define(SERVER, ?MODULE).
 
@@ -111,8 +116,7 @@
 %% to generate membership updates as the ring changes.
 -spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
-    {ok, LocalState} = plumtree_peer_service_manager:get_local_state(),
-    Members = riak_dt_orswot:value(LocalState),
+    {ok, Members} = plumtree_peer_service_manager:members(),
     {InitEagers, InitLazys} = init_peers(Members),
     Mods = app_helper:get_env(plumtree, broadcast_mods, [plumtree_metadata_manager]),
     Res = start_link(Members, InitEagers, InitLazys, Mods),
@@ -216,15 +220,12 @@ debug_get_tree(Root, Nodes) ->
 %%%===================================================================
 
 %% @private
--spec init([[nodename()]]) -> {ok, #state{}} |
-                                  {ok, #state{}, non_neg_integer() | infinity} |
-                                  ignore |
-                                  {stop, term()}.
+-spec init([[any()],...]) -> {ok, #state{}}.
 init([AllMembers, InitEagers, InitLazys, Mods]) ->
     schedule_lazy_tick(),
     schedule_exchange_tick(),
     State1 =  #state{
-                 outstanding   = orddict:new(),
+                 outstanding = orddict:new(),
                  mods = lists:usort(Mods),
                  exchanges=[]
                 },
@@ -232,13 +233,7 @@ init([AllMembers, InitEagers, InitLazys, Mods]) ->
     {ok, State2}.
 
 %% @private
--spec handle_call(term(), {pid(), term()}, #state{}) ->
-                         {reply, term(), #state{}} |
-                         {reply, term(), #state{}, non_neg_integer()} |
-                         {noreply, #state{}} |
-                         {noreply, #state{}, non_neg_integer()} |
-                         {stop, term(), term(), #state{}} |
-                         {stop, term(), #state{}}.
+-spec handle_call(term(), {pid(), term()}, #state{}) -> {reply, term(), #state{}}.
 handle_call({get_peers, Root}, _From, State) ->
     EagerPeers = all_peers(Root, State#state.eager_sets, State#state.common_eagers),
     LazyPeers = all_peers(Root, State#state.lazy_sets, State#state.common_lazys),
@@ -252,9 +247,7 @@ handle_call({cancel_exchanges, WhichExchanges}, _From, State) ->
     {reply, Cancelled, State}.
 
 %% @private
--spec handle_cast(term(), #state{}) -> {noreply, #state{}} |
-                                       {noreply, #state{}, non_neg_integer()} |
-                                       {stop, term(), #state{}}.
+-spec handle_cast(term(), #state{}) -> {noreply, #state{}}.
 handle_cast({broadcast, MessageId, Message, Mod}, State) ->
     State1 = eager_push(MessageId, Message, Mod, State),
     State2 = schedule_lazy_push(MessageId, Mod, State1),
@@ -278,7 +271,7 @@ handle_cast({graft, MessageId, Mod, Round, Root, From}, State) ->
     State1 = handle_graft(Result, MessageId, Mod, Round, Root, From, State),
     {noreply, State1};
 handle_cast({update, LocalState}, State=#state{all_members=BroadcastMembers}) ->
-    Members = riak_dt_orswot:value(LocalState),
+    Members = ?SET:value(LocalState),
     CurrentMembers = ordsets:from_list(Members),
     New = ordsets:subtract(CurrentMembers, BroadcastMembers),
     Removed = ordsets:subtract(BroadcastMembers, CurrentMembers),
@@ -292,9 +285,8 @@ handle_cast({update, LocalState}, State=#state{all_members=BroadcastMembers}) ->
     {noreply, State2}.
 
 %% @private
--spec handle_info(term(), #state{}) -> {noreply, #state{}} |
-                                       {noreply, #state{}, non_neg_integer()} |
-                                       {stop, term(), #state{}}.
+-spec handle_info('exchange_tick' | 'lazy_tick' | {'DOWN', _, 'process', _, _}, #state{}) ->
+    {noreply, #state{}}.
 handle_info(lazy_tick, State) ->
     schedule_lazy_tick(),
     _ = send_lazy(State),
@@ -463,7 +455,6 @@ exchange_filter({mod, Mod}) ->
     fun({ExchangeMod, _, _, _}) ->
             Mod =:= ExchangeMod
     end.
-
 
 %% picks random root uniformly
 random_root(#state{all_members=Members}) ->

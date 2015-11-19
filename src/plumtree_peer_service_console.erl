@@ -22,9 +22,10 @@
 
 -export([members/1]).
 
+-include("plumtree.hrl").
+
 members([]) ->
-    {ok, LocalState} = plumtree_peer_service_manager:get_local_state(),
-    Members = riak_dt_orswot:value(LocalState),
+    {ok, Members} = plumtree_peer_service_manager:members(),
     print_members(Members).
 
 print_members(Members) ->
