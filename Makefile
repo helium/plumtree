@@ -1,7 +1,7 @@
-.PHONY: deps compile rel
+REBAR = $(shell pwd)/rebar3
+.PHONY: deps compile rel test
 
 DIALYZER_APPS = kernel stdlib erts sasl eunit syntax_tools compiler crypto
-REBAR="./rebar3"
 DEP_DIR="_build/lib"
 
 all: compile
@@ -11,14 +11,16 @@ include tools.mk
 test: common_test
 
 common_test:
-	./rebar3 ct
+	$(REBAR) ct
 
-compile: deps
-	./rebar3 compile
+compile:
+	$(REBAR) compile
 
 rel:
-	./rebar3 release
+	$(REBAR) release
 
 stage:
-	./rebar3 release -d
+	$(REBAR) release -d
 
+dialyzer:
+	$(REBAR) dialyzer

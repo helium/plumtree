@@ -20,76 +20,142 @@
 
 -module(plumtree_peer_service_manager).
 
--define(TBL, cluster_state).
+-behaviour(gen_server).
 
--export([init/0, get_local_state/0, get_actor/0, update_state/1, delete_state/0]).
+%% API
+-export([start_link/0,
+         members/0,
+         get_local_state/0,
+         get_actor/0,
+         update_state/1,
+         delete_state/0]).
 
-init() ->
-    %% setup ETS table for cluster_state
-    _ = try ets:new(?TBL, [named_table, public, set, {keypos, 1}]) of
-            _Res ->
-                gen_actor(),
-                maybe_load_state_from_disk(),
-                ok
-        catch
-            error:badarg ->
-                lager:warning("Table ~p already exists", [?TBL])
-                %%TODO rejoin logic
-        end,
+%% gen_server callbacks
+-export([init/1,
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2,
+         code_change/3]).
+
+-include("plumtree.hrl").
+
+-type actor() :: binary().
+-type membership() :: ?SET:orswot().
+
+-record(state, {actor :: actor(),
+                membership :: membership() }).
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+%% @doc Same as start_link([]).
+-spec start_link() -> {ok, pid()} | ignore | {error, term()}.
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+%% @doc Return membership list.
+members() ->
+    gen_server:call(?MODULE, members, infinity).
+
+%% @doc Return local node's view of cluster membership.
+get_local_state() ->
+    gen_server:call(?MODULE, get_local_state, infinity).
+
+%% @doc Return local node's current actor.
+get_actor() ->
+    gen_server:call(?MODULE, get_actor, infinity).
+
+%% @doc Update cluster state.
+update_state(State) ->
+    gen_server:call(?MODULE, {update_state, State}, infinity).
+
+%% @doc Delete state.
+delete_state() ->
+    gen_server:call(?MODULE, delete_state, infinity).
+
+%%%===================================================================
+%%% gen_server callbacks
+%%%===================================================================
+
+%% @private
+-spec init([]) -> {ok, #state{}}.
+init([]) ->
+    Actor = gen_actor(),
+    Membership = maybe_load_state_from_disk(Actor),
+    {ok, #state{actor=Actor, membership=Membership}}.
+
+%% @private
+-spec handle_call(term(), {pid(), term()}, #state{}) -> {reply, term(), #state{}}.
+handle_call(members, _From, #state{membership=Membership}=State) ->
+    {reply, {ok, ?SET:value(Membership)}, State};
+handle_call(get_local_state, _From, #state{membership=Membership}=State) ->
+    {reply, {ok, Membership}, State};
+handle_call(get_actor, _From, #state{actor=Actor}=State) ->
+    {reply, {ok, Actor}, State};
+handle_call({update_state, NewState}, _From, #state{membership=Membership}=State) ->
+    Merged = ?SET:merge(Membership, NewState),
+    persist_state(Merged),
+    {reply, ok, State#state{membership=Merged}};
+handle_call(delete_state, _From, State) ->
+    delete_state_from_disk(),
+    {reply, ok, State};
+handle_call(Msg, _From, State) ->
+    lager:warning("Unhandled messages: ~p", [Msg]),
+    {reply, ok, State}.
+
+%% @private
+-spec handle_cast(term(), #state{}) -> {noreply, #state{}}.
+handle_cast(Msg, State) ->
+    lager:warning("Unhandled messages: ~p", [Msg]),
+    {noreply, State}.
+
+%% @private
+-spec handle_info(term(), #state{}) -> {noreply, #state{}}.
+handle_info(Msg, State) ->
+    lager:warning("Unhandled messages: ~p", [Msg]),
+    {noreply, State}.
+
+%% @private
+-spec terminate(term(), #state{}) -> term().
+terminate(_Reason, _State) ->
     ok.
 
-%% @doc return local node's view of cluster membership
-get_local_state() ->
-   case hd(ets:lookup(?TBL, cluster_state)) of
-       {cluster_state, State} ->
-           {ok, State};
-       _Else ->
-           {error, _Else}
-   end.
+%% @private
+-spec code_change(term() | {down, term()}, #state{}, term()) -> {ok, #state{}}.
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
 
-%% @doc return local node's current actor
-get_actor() ->
-    case hd(ets:lookup(?TBL, actor)) of
-        {actor, Actor} ->
-            {ok, Actor};
-        _Else ->
-            {error, _Else}
-    end.
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
 
-%% @doc update cluster_state
-update_state(State) ->
-    write_state_to_disk(State),
-    ets:insert(?TBL, {cluster_state, State}).
+%% @private
+empty_membership(Actor) ->
+    Initial = ?SET:new(),
+    {ok, LocalState} = ?SET:update({add, node()}, Actor, Initial),
+    persist_state(LocalState),
+    LocalState.
 
-delete_state() ->
-    delete_state_from_disk().
-
-%%% ------------------------------------------------------------------
-%%% internal functions
-%%% ------------------------------------------------------------------
-
-%% @doc initialize singleton cluster
-add_self() ->
-    Initial = riak_dt_orswot:new(),
-    Actor = ets:lookup(?TBL, actor),
-    {ok, LocalState} = riak_dt_orswot:update({add, node()}, Actor, Initial),
-    update_state(LocalState). 
-
-%% @doc generate an actor for this node while alive
+%% @private
 gen_actor() ->
     Node = atom_to_list(node()),
-    {M, S, U} = now(),
-    TS = integer_to_list(M * 1000 * 1000 * 1000 * 1000 + S * 1000 * 1000 + U),
+    Unique = time_compat:unique_integer([positive]),
+    TS = integer_to_list(Unique),
     Term = Node ++ TS,
-    Actor = crypto:hash(sha, Term),
-    ets:insert(?TBL, {actor, Actor}).
+    crypto:hash(sha, Term).
 
+%% @private
 data_root() ->
     case application:get_env(plumtree, plumtree_data_dir) of
-        {ok, PRoot} -> filename:join(PRoot, "peer_service");
-        undefined -> undefined
+        {ok, PRoot} ->
+            filename:join(PRoot, "peer_service");
+        undefined ->
+            undefined
     end.
 
+%% @private
 write_state_to_disk(State) ->
     case data_root() of
         undefined ->
@@ -97,14 +163,12 @@ write_state_to_disk(State) ->
         Dir ->
             File = filename:join(Dir, "cluster_state"),
             ok = filelib:ensure_dir(File),
-            lager:info("writing state ~p to disk ~p",
-                       [State, riak_dt_orswot:to_binary(State)]),
-            ok = file:write_file(File,
-                                 riak_dt_orswot:to_binary(State))
+            ok = file:write_file(File, ?SET:to_binary(State))
     end.
 
+%% @private
 delete_state_from_disk() ->
-    case data_root() of 
+    case data_root() of
         undefined ->
             ok;
         Dir ->
@@ -118,19 +182,22 @@ delete_state_from_disk() ->
             end
     end.
 
-maybe_load_state_from_disk() ->
+%% @private
+maybe_load_state_from_disk(Actor) ->
     case data_root() of
         undefined ->
-            add_self();
+            empty_membership(Actor);
         Dir ->
             case filelib:is_regular(filename:join(Dir, "cluster_state")) of
                 true ->
-                    {ok, Bin} = file:read_file(filename:join(Dir,
-                                                             "cluster_state")),
-                    {ok, State} = riak_dt_orswot:from_binary(Bin),
-                    lager:info("read state from file ~p~n", [State]),
-                    update_state(State);
+                    {ok, Bin} = file:read_file(filename:join(Dir, "cluster_state")),
+                    {ok, State} = ?SET:from_binary(Bin),
+                    State;
                 false ->
-                    add_self()
+                    empty_membership(Actor)
             end
     end.
+
+%% @private
+persist_state(State) ->
+    write_state_to_disk(State).

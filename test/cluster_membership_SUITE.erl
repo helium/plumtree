@@ -19,6 +19,7 @@
 %% -------------------------------------------------------------------
 
 -module(cluster_membership_SUITE).
+-compile({parse_transform, lager_transform}).
 
 -export([
          %% suite/0,
@@ -55,9 +56,9 @@ init_per_suite(_Config) ->
     {ok, Hostname} = inet:gethostname(),
     case net_kernel:start([list_to_atom("runner@"++Hostname), shortnames]) of
         {ok, _} -> ok;
-        {error, {already_started, _}} -> ok
+        {error, {already_started, _}} -> ok;
+        {error, {{already_started, _},_}} -> ok
     end,
-    lager:info("node name ~p", [node()]),
     _Config.
 
 end_per_suite(_Config) ->
@@ -68,7 +69,6 @@ init_per_testcase(Case, Config) ->
     Nodes = plumtree_test_utils:pmap(fun(N) ->
                     plumtree_test_utils:start_node(N, Config, Case)
             end, [jaguar, shadow, thorn, pyros]),
-    {ok, _} = ct_cover:add_nodes(Nodes),
     [{nodes, Nodes}|Config].
 
 end_per_testcase(_, _Config) ->
@@ -81,7 +81,6 @@ all() ->
 
 singleton_test(Config) ->
     Nodes = proplists:get_value(nodes, Config),
-    ok = ct_cover:remove_nodes(Nodes),
     [[Node] = plumtree_test_utils:get_cluster_members(Node) || Node <- Nodes],
     ok.
 
