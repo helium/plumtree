@@ -1,16 +1,14 @@
 language: erlang
 otp_release:
-  - 18.0
+  - 18.1
   - 17.4
-  - 17.2
   - R16B03
-  - R16B02
-  - R16B01
-  - R15B03
 script:
   - make dialyzer
   - make xref
   - make
   - make test
 notifications:
+  email: christopher.meiklejohn@gmail.com
   email: tom@helium.com
+sudo: false

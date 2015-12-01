@@ -20,22 +20,23 @@
 
 -module(plumtree_test_utils).
 
--export([
-    get_cluster_members/1,
-    pmap/2,
-    wait_until/3,
-    wait_until_left/2,
-    wait_until_joined/2,
-    wait_until_offline/1,
-    wait_until_disconnected/2,
-    wait_until_connected/2,
-    start_node/3,
-    partition_cluster/2,
-    heal_cluster/2
-    ]).
+-export([get_cluster_members/1,
+         pmap/2,
+         wait_until/3,
+         wait_until_left/2,
+         wait_until_joined/2,
+         wait_until_offline/1,
+         wait_until_disconnected/2,
+         wait_until_connected/2,
+         start_node/3,
+         partition_cluster/2,
+         heal_cluster/2]).
+
+-include("plumtree.hrl").
+
 get_cluster_members(Node) ->
     {Node, {ok, Res}} = {Node, rpc:call(Node, plumtree_peer_service_manager, get_local_state, [])},
-    riak_dt_orswot:value(Res).
+    ?SET:value(Res).
 
 pmap(F, L) ->
     Parent = self(),
