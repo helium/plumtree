@@ -9,7 +9,9 @@
                   crypto,
                   lager,
                   eleveldb,
-                  riak_dt
+                  riak_dt,
+                  time_compat,
+                  lasp_support
                  ]},
   {mod, { plumtree_app, []}},
   {modules, []},
