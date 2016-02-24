@@ -62,6 +62,7 @@ attempt_join(Node, Local) ->
     {ok, Remote} = gen_server:call({plumtree_peer_service_gossip, Node}, send_state),
     Merged = ?SET:merge(Remote, Local),
     _ = plumtree_peer_service_manager:update_state(Merged),
+    plumtree_peer_service_events:update(Merged),
     %% broadcast to all nodes
     %% get peer list
     Members = ?SET:value(Merged),
