@@ -69,27 +69,33 @@ attempt_join(Node, Local) ->
     _ = [gen_server:cast({plumtree_peer_service_gossip, P}, {receive_state, Merged}) || P <- Members, P /= node()],
     ok.
 
-leave(_Args) when is_list(_Args) ->
+leave(Args) when is_list(Args) ->
     {ok, Local} = plumtree_peer_service_manager:get_local_state(),
     {ok, Actor} = plumtree_peer_service_manager:get_actor(),
     {ok, Leave} = ?SET:update({remove, node()}, Actor, Local),
-    case random_peer(Leave) of
+    case random_peer(Leave, Args) of
         {ok, Peer} ->
-            {ok, Remote} = gen_server:call({plumtree_peer_service_gossip, Peer}, send_state),
-            Merged = ?SET:merge(Leave, Remote),
-            _ = gen_server:cast({plumtree_peer_service_gossip, Peer}, {receive_state, Merged}),
-            {ok, Remote2} = gen_server:call({plumtree_peer_service_gossip, Peer}, send_state),
-            Remote2List = ?SET:value(Remote2),
-            case [P || P <- Remote2List, P =:= node()] of
-                [] ->
-                    %% leaving the cluster shuts down the node
-                    plumtree_peer_service_manager:delete_state(),
-                    stop("Leaving cluster");
-                _ ->
-                    leave([])
-            end;
-        {error, singleton} ->
-            lager:warning("Cannot leave, not a member of a cluster.")
+            try gen_server:call({plumtree_peer_service_gossip, Peer}, send_state) of
+                {ok, Remote} ->
+                    Merged = ?SET:merge(Leave, Remote),
+                    _ = gen_server:cast({plumtree_peer_service_gossip, Peer}, {receive_state, Merged}),
+                    {ok, Remote2} = gen_server:call({plumtree_peer_service_gossip, Peer}, send_state),
+                    Remote2List = ?SET:value(Remote2),
+                    case [P || P <- Remote2List, P =:= node()] of
+                        [] ->
+                            %% leaving the cluster shuts down the node
+                            plumtree_peer_service_manager:delete_state(),
+                            stop("Leaving cluster");
+                        _ ->
+                            leave([])
+                    end;
+                {error, singleton} ->
+                    lager:warning("Cannot leave, not a member of a cluster.")
+            catch 
+                What:Why ->
+                    lager:debug("Error leaving cluster. What: ~p, Why: ~p", [What, Why]),
+                    leave([Peer|Args])
+            end
     end;
 leave(_Args) ->
     leave([]).
@@ -101,10 +107,10 @@ stop(Reason) ->
     lager:notice("~p", [Reason]),
     init:stop().
 
-random_peer(Leave) ->
+random_peer(Leave, Banned) ->
     Members = ?SET:value(Leave),
     Peers = [P || P <- Members],
-    case Peers of
+    case Peers -- Banned of
         [] ->
             {error, singleton};
         _ ->
