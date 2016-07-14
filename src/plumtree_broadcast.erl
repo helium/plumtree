@@ -407,7 +407,10 @@ maybe_exchange(Peer, State=#state{mods=[Mod | _],exchanges=Exchanges}) ->
     case BelowLimit and FreeMod of
         true -> exchange(Peer, State);
         false -> State
-    end.
+    end;
+maybe_exchange(_Peer, State=#state{mods=[]}) ->
+    %% No registered handler.
+    State.
 
 exchange(Peer, State=#state{mods=[Mod | Mods],exchanges=Exchanges}) ->
     State1 = case Mod:exchange(Peer) of
