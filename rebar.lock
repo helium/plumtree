@@ -1,6 +1,6 @@
 [{<<"eleveldb">>,
   {git,"git://github.com/helium/eleveldb.git",
-       {ref,"7ae3114306fe564152e245157cb38cf39b383995"}},
+       {ref,"822a1043284ac697bc5f2870e6e5c5900e8a0908"}},
   0},
  {<<"goldrush">>,
   {git,"git://github.com/DeadZen/goldrush.git",
