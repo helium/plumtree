@@ -558,11 +558,13 @@ all_peers(Root, Sets, Default) ->
         {ok, Peers} -> Peers
     end.
 
+%% Abcast should be used here instead of cast otherwise we risk
+%% introducing a memory leak if nodes are down and we attempt to send
+%% to them.
 send(Msg, Peers) when is_list(Peers) ->
-    [send(Msg, P) || P <- Peers];
+    gen_server:abcast(Peers, ?SERVER, Msg);
 send(Msg, P) ->
-    %% TODO: add debug logging
-    gen_server:cast({?SERVER, P}, Msg).
+    gen_server:abcast([P], ?SERVER, Msg).
 
 schedule_lazy_tick() ->
     schedule_tick(lazy_tick, broadcast_lazy_timer, 1000).
