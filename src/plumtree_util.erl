@@ -20,7 +20,8 @@
 
 -module(plumtree_util).
 
--export([build_tree/3]).
+-export([build_tree/3,
+        uniform/1]).
 
 %% @doc Convert a list of elements into an N-ary tree. This conversion
 %%      works by treating the list as an array-based tree where, for
@@ -46,3 +47,11 @@ build_tree(N, Nodes, Opts) ->
                             {NewResult, Rest}
                     end, {[], tl(Expand)}, Nodes),
     orddict:from_list(Tree).
+
+-ifdef(rand_module).
+uniform(N) ->
+    rand:uniform(N).
+-else.
+uniform(N) ->
+    random:uniform(N).
+-endif.
