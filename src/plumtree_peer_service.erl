@@ -114,7 +114,7 @@ random_peer(Leave, Banned) ->
         [] ->
             {error, singleton};
         _ ->
-            Idx = random:uniform(length(Peers)),
+            Idx = plumtree_util:uniform(length(Peers)),
             Peer = lists:nth(Idx, Peers),
             {ok, Peer}
     end.
